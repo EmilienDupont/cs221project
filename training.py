@@ -14,8 +14,13 @@ class Training:
 
         self.numLines = numLines
         self.data = []
-        for i in range(numLines):
-            self.data.append( json.loads(open(filename).readline()) )
+
+        lineNum = 0
+        with open(filename) as f:
+            for line in f:
+                if lineNum < self.numLines:
+                    self.data.append(json.loads(line))
+                    lineNum += 1
 
     def letMeSeeThatData(self):
         print self.data
@@ -24,8 +29,8 @@ class Training:
         """
         Calculates average star rating (from 1 to 5) of reviews in dataset.
         """
-        return sum( review['stars'] for review in self.data )/self.numLines
+        return sum( float(review['stars']) for review in self.data )/self.numLines
 
-train = Training('yelp_mini_set.json',1)
-train.letMeSeeThatData()
-print train.averageRating()
+train = Training('../../../../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json',10000)
+#train.letMeSeeThatData()
+print 'Average rating of %s reviews is %s' % (train.numLines, train.averageRating())
