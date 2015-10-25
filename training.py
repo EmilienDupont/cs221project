@@ -32,6 +32,8 @@ class Training:
         self.testLines = testLines
         self.featureExtractor = extractWordFeatures
         self.data, self.testData = loadData(filename, numLines, testLines)
+        self.weights = {}
+        self.meanRating = None
 
     def letMeSeeThatData(self):
         print self.data
