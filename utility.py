@@ -1,3 +1,5 @@
+import os.path
+import json
 
 def loadData(filename, numLinesData, numLinesTest):
 
@@ -10,16 +12,16 @@ def loadData(filename, numLinesData, numLinesTest):
 
     with open(filename) as f:
         for line in f:
-            if lineNum < self.numLinesData:
+            if lineNum < numLinesData:
                 trainData.append(json.loads(line))
                 lineNum += 1
-            elif lineNum < self.numLinesData + self.numLinesTest:
+            elif lineNum < numLinesData + numLinesTest:
                 testData.append(json.loads(line))
                 lineNum += 1
             else:
                 break
 
-    return {'trainData' : trainData, 'testData' : testData}
+    return (trainData, testData)
 
 def dotProduct(d1, d2):
     """

@@ -20,24 +20,18 @@ class Training:
     """
     Class to load and train data.
     """
-    def __init__(self, filename, numLines=100, featureExtractor = extractWordFeatures):
+    def __init__(self, filename, numLines=100, featureExtractor = extractWordFeatures, testLines=100):
         """
         Loads in json data from file at filename.
         """
         if not os.path.isfile(filename):
             raise RuntimeError, "The file '%s' does not exist" % filename
-        
+
         self.filename = filename
         self.numLines = numLines
+        self.testLines = testLines
         self.featureExtractor = extractWordFeatures
-        self.data = []
-
-        lineNum = 0
-        with open(filename) as f:
-            for line in f:
-                if lineNum < self.numLines:
-                    self.data.append(json.loads(line))
-                    lineNum += 1
+        self.data, self.testData = loadData(filename, numLines, testLines)
 
     def letMeSeeThatData(self):
         print self.data
@@ -58,21 +52,21 @@ class Training:
             s = review['stars']
             C.update({s:1})
         return C.most_common(1)[0][0]
-    
+
     def learnPredictor(self):
         """
         Learns a linear predictor based on the featureExtractor
         """
         # needs to run self.averageRating() first
-        
+
         self.weights = {}
         #self.meanFeature = {}
-        
+
         # mean-centering
         #for review in self.data:
         #    phi = self.featureExtractor(review['text'])
         #    increment(self.meanFeature, float(1/self.numLines), phi)
-        
+
         numIters, eta = 10, 0.0005
         for t in range(numIters):
             for review in self.data:
@@ -82,9 +76,9 @@ class Training:
                 phi[INTERCEPT] = 1
                 #increment(phi, -1, self.meanFeature)
                 coeff = dotProduct(self.weights, phi) - star + self.meanRating
-                
+
                 increment(self.weights, float(-eta*coeff), phi)
-    
+
     def predictRating(self, review):
         """
         Predicts a star rating from 1 to 5 given the |review| text
