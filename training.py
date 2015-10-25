@@ -1,16 +1,11 @@
 import collections
 import json
+import math
 import os.path
 import sys
 from utility import *
 
-# Analysing command line arguments
-if len(sys.argv) < 2:
-  print 'Usage:'
-  print '  python %s <JSON file>' % sys.argv[0]
-  exit()
-
-inputFile = sys.argv[1]
+INTERCEPT = '-INTERCEPT-' # intercept token
 
 def extractWordFeatures(x):
     words, features = x.split(), {}
@@ -51,7 +46,8 @@ class Training:
         """
         Calculates average star rating (from 1 to 5) of reviews in dataset.
         """
-        return sum( float(review['stars']) for review in self.data )/self.numLines
+        self.meanRating = sum( float(review['stars']) for review in self.data )/self.numLines
+        return self.meanRating
 
     def modeRating(self):
         """
@@ -67,36 +63,40 @@ class Training:
         """
         Learns a linear predictor based on the featureExtractor
         """
-        self.weights = {}
+        # needs to run self.averageRating() first
         
-        numIters, eta = 20, 0.025
+        self.weights = {}
+        #self.meanFeature = {}
+        
+        # mean-centering
+        #for review in self.data:
+        #    phi = self.featureExtractor(review['text'])
+        #    increment(self.meanFeature, float(1/self.numLines), phi)
+        
+        numIters, eta = 10, 0.0005
         for t in range(numIters):
             for review in self.data:
                 star = review['stars']
                 text = review['text']
                 phi = self.featureExtractor(text)
+                phi[INTERCEPT] = 1
+                #increment(phi, -1, self.meanFeature)
+                coeff = dotProduct(self.weights, phi) - star + self.meanRating
                 
-                coeff = dotProduct(self.weights, phi)
-                increment(self.weights, float(-eta), phi)
+                increment(self.weights, float(-eta*coeff), phi)
     
     def predictRating(self, review):
         """
         Predicts a star rating from 1 to 5 given the |review| text
         """
         phi = self.featureExtractor(review['text'])
-        prediction = dotProduct(phi, self.weights)
+        phi[INTERCEPT] = 1
+#        increment(phi, -1, self.meanFeature)
+        prediction = dotProduct(phi, self.weights) + self.meanRating
         if prediction <= 1:
             return 1
         elif prediction >= 5:
             return 5
         else:
-            return round(prediction)
-
-#train = Training('../../../../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json',10000)
-train = Training(inputFile, 1000)
-#train.letMeSeeThatData()
-print 'Average rating of %s reviews is %s' % (train.numLines, train.averageRating())
-
-print 'Mode rating of %s reviews is %s' % (train.numLines, train.modeRating())
-
-train.learnPredictor()
+            return prediction
+            #return round(prediction)
