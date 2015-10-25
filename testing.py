@@ -6,24 +6,27 @@ class Testing:
     """
     Class to load and test data.
     """
-    def __init__(self, filename, startLine = 101, numLines=100):
+    def __init__(self, Train, extraLines=100):
         """
-        Loads in json data from file at filename.
+        Loads in json test data from same dataset as the training instance.
         """
-        if not os.path.isfile(filename):
-            raise RuntimeError, "The file '%s' does not exist" % filename
+        if not os.path.isfile(Train.filename):
+            raise RuntimeError, "The file '%s' does not exist" % Train.filename
 
-        self.numLines = numLines
-        self.startLine = startLine
-        self.data = []
+        self.extraLines = extraLines
+        self.startLine = Train.numLines + 1
+        self.testData = []
         self.fixedPrediction = 0
 
         lineNum = 0
-        with open(filename) as f:
+        with open(Train.filename) as f:
             for line in f:
-                if lineNum >= self.startLine and lineNum < self.numLines + self.startLine:
+                if lineNum >= self.startLine and lineNum < self.startLine + self.extraLines:
                     self.data.append(json.loads(line))
                 lineNum += 1
+
+#### SHOULD CHANGE THIS TO HAVE A SEPARATE LOAD FUNCTION THAT LOADS EVERYTHING AND STORES self.TrainData, self.TestData
+
     def setFixedPrediction(self, val):
         self.fixedPrediction = val
 
@@ -45,9 +48,7 @@ class Testing:
             totalPoints += 1
         return float(numCorrect)/float(totalPoints)
 
-
 test = Testing('../../../../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json',10001,10000)
 test.setFixedPrediction(5)
 
 print 'Accuracy of %s reviews is %s' % (test.numLines, test.evaluatePredictor())
-

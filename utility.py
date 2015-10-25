@@ -1,4 +1,25 @@
-from collections import Counter
+
+def loadData(filename, numLinesData, numLinesTest):
+
+    if not os.path.isfile(filename):
+            raise RuntimeError, "The file '%s' does not exist" % filename
+
+    trainData = []
+    testData = []
+    lineNum = 0
+
+    with open(filename) as f:
+        for line in f:
+            if lineNum < self.numLinesData:
+                trainData.append(json.loads(line))
+                lineNum += 1
+            elif lineNum < self.numLinesData + self.numLinesTest:
+                testData.append(json.loads(line))
+                lineNum += 1
+            else:
+                break
+
+    return {'trainData' : trainData, 'testData' : testData}
 
 def dotProduct(d1, d2):
     """
