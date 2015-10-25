@@ -1,6 +1,15 @@
 import json
 import os.path
 import collections
+import sys
+
+# Analysing command line arguments
+if len(sys.argv) < 2:
+  print 'Usage:'
+  print '  python %s <JSON file>' % sys.argv[0]
+  exit()
+
+inputFile = sys.argv[1]
 
 class Training:
     """
@@ -42,7 +51,8 @@ class Training:
             C.update({s:1})
         return C.most_common(1)[0][0]
 
-train = Training('../../../../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json',10000)
+#train = Training('../../../../../yelp_dataset_challenge_academic_dataset/yelp_academic_dataset_review.json',10000)
+train = Training(inputFile)
 #train.letMeSeeThatData()
 print 'Average rating of %s reviews is %s' % (train.numLines, train.averageRating())
 
