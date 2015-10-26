@@ -8,7 +8,7 @@ if len(sys.argv) < 2:
 
 inputFile = sys.argv[1]
 
-train = Training(inputFile, numLines = 10000, testLines = 10000)
+train = Training(inputFile, numLines = 10000, testLines = 100)
 
 print 'Average rating of %s reviews is %s' % (train.numLines, train.averageRating())
 print 'Mode rating of %s reviews is %s' % (train.numLines, train.modeRating())
@@ -21,14 +21,17 @@ for review in train.data:
     MSETrain += (review['stars'] - train.predictRating(review))**2
 
 MSETrain /= train.numLines
-    
+
+# Misclassification
+MisClass = sum( 1.0 for review in train.data if review['stars'] != round(train.predictRating(review)) )/train.numLines
 print "Training RMSE: %s" % math.sqrt(MSETrain)
+print "Training MisClass: %s" % MisClass
 
 # testing error
 MSETest = 0
 for review in train.testData:
     MSETest += (review['stars'] - train.predictRating(review))**2
-    
+
 MSETest /= train.testLines
 
 print "Test RMSE: %s" % math.sqrt(MSETest)
