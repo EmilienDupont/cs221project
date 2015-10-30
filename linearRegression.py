@@ -87,4 +87,15 @@ class LinearRegression:
         return sum( 1.0 for review in self.Data.testData
                 if review['stars'] != round(self.predictRating(review)) )/self.Data.testLines
 
+    def getInfo(self):
+        """
+        Prints info about model and various errors.
+        """
+        print "Using %s training reviews and %s test reviews" % (self.Data.numLines, self.Data.testLines)
+        print "Training RMSE: %s" % self.getTrainingRMSE()
+        print "Training Misclassification: %s" % self.getTrainingMisClass()
+        print "Test RMSE: %s" % self.getTestRMSE()
+        print "Test Misclassification: %s" % self.getTestMisClass()
+        print "\n"
+
 

@@ -11,6 +11,44 @@ def wordFeatures(text):
             wordCount[word] = 1
     return wordCount
 
+def stemFunction(leafWords):
+    """
+    Returns a function that stems word which have an ending in leafwords.
+    E.g. if leafWords = ['s','es','ed','er','ly','ing']
+    Then stem('orderly') = 'order', stem('catching') = 'catch'
+    """
+    def stem(word):
+        for leaf in leafWords:
+            if word[-len(leaf):] == leaf:
+                return word[:-len(leaf)]
+
+    return stem
+
+def stemmedWordFeatures(leafWords):
+    """
+    Returns a function that return stemmed word features according to leafWords.
+    E.g. if leafWords = ['s','es','ed','er','ly','ing'] then stem('orderly') = 'order',
+    stem('catching') = 'catch'. So for example
+    "Well priced prices" -> {'Well' : 1, 'pric' : 1}
+    """
+    def stem(word):
+        for leaf in leafWords:
+            if word[-len(leaf):] == leaf:
+                return word[:-len(leaf)]
+        return word
+
+    def stemmedWordCount(text):
+        wordCount = {}
+        for word in text.split():
+            stemWord = stem(word)
+            if stemWord in wordCount:
+                wordCount[stemWord] += 1
+            else:
+                wordCount[stemWord] = 1
+        return wordCount
+
+    return stemmedWordCount
+
 def nGramFeatures(n):
     """
     Returns a function that returns "n-gram" features from a string
@@ -25,16 +63,3 @@ def nGramFeatures(n):
                 featureVec[string[i:i+n]] = 1
         return featureVec
     return nGramFunction
-
-def stemFunction(leafWords):
-    """
-    Returns a function that stems word which have an ending in leafwords.
-    E.g. if leafWords = ['s','es','ed','er','ly','ing']
-    Then stem('orderly') = 'order', stem('catching') = 'catch'
-    """
-    def stem(word):
-        for leaf in leafWords:
-            if word[-len(leaf):] == leaf:
-                return word[:-len(leaf)]
-
-    return stem
