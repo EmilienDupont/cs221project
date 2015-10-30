@@ -11,6 +11,9 @@ if len(sys.argv) < 2:
 
 inputFile = sys.argv[1]
 
+
+
+# Import Data
 reviews = Data(inputFile, numLines = 1000, testLines = 100)
 
 print 'Average rating of %s reviews is %s' % (reviews.numLines, reviews.averageRating())
@@ -19,23 +22,7 @@ print 'Mode rating of %s reviews is %s' % (reviews.numLines, reviews.modeRating(
 # Set up an actual model
 linearModel = LinearRegression(reviews, features.wordFeatures)
 
-# train error
-MSETrain = 0
-for review in reviews.trainData:
-    MSETrain += (review['stars'] - linearModel.predictRating(review))**2
-
-MSETrain /= reviews.numLines
-
-# Misclassification
-MisClass = sum( 1.0 for review in reviews.trainData if review['stars'] != round(linearModel.predictRating(review)) )/reviews.numLines
-print "Training RMSE: %s" % math.sqrt(MSETrain)
-print "Training MisClass: %s" % MisClass
-
-# testing error
-MSETest = 0
-for review in reviews.testData:
-    MSETest += (review['stars'] - linearModel.predictRating(review))**2
-
-MSETest /= reviews.testLines
-
-print "Test RMSE: %s" % math.sqrt(MSETest)
+print "Training RMSE: %s" % linearModel.getTrainingRMSE()
+print "Training MisClass: %s" % linearModel.getTrainingMisClass()
+print "Test RMSE: %s" % linearModel.getTestRMSE()
+print "Test MisClass: %s" % linearModel.getTestMisClass()
