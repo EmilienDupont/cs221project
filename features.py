@@ -1,3 +1,16 @@
+def wordFeatures(text):
+    """
+    Function to return the word count in a string as a dict.
+    E.g. "This is the way it is" -> {'This' : 1, 'is' : 2, 'the' : 1, 'way' : 1, 'it' : 1}
+    """
+    wordCount = {}
+    for word in text.split():
+        if word in wordCount:
+            wordCount[word] += 1
+        else:
+            wordCount[word] = 1
+    return wordCount
+
 def nGramFeatures(n):
     """
     Returns a function that returns "n-gram" features from a string
@@ -12,19 +25,6 @@ def nGramFeatures(n):
                 featureVec[string[i:i+n]] = 1
         return featureVec
     return nGramFunction
-
-def wordFeatures(text):
-    """
-    Function to return the word count in a string as a dict.
-    E.g. "This is the way it is" -> {'This' : 1, 'is' : 2, 'the' : 1, 'way' : 1, 'it' : 1}
-    """
-    wordCount = {}
-    for word in text.split():
-        if word in wordCount:
-            wordCount[word] += 1
-        else:
-            wordCount[word] = 1
-    return wordCount
 
 def stemFunction(leafWords):
     """

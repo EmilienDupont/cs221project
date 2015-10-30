@@ -1,4 +1,7 @@
+import features
+
 from training import *
+from linearRegression import *
 
 # Analyzing command line arguments
 if len(sys.argv) < 2:
@@ -8,30 +11,31 @@ if len(sys.argv) < 2:
 
 inputFile = sys.argv[1]
 
-train = Training(inputFile, numLines = 10000, testLines = 100)
+reviews = Data(inputFile, numLines = 1000, testLines = 100)
 
-print 'Average rating of %s reviews is %s' % (train.numLines, train.averageRating())
-print 'Mode rating of %s reviews is %s' % (train.numLines, train.modeRating())
+print 'Average rating of %s reviews is %s' % (reviews.numLines, reviews.averageRating())
+print 'Mode rating of %s reviews is %s' % (reviews.numLines, reviews.modeRating())
 
-train.learnPredictor()
+# Set up an actual model
+linearModel = LinearRegression(reviews, features.wordFeatures)
 
 # train error
 MSETrain = 0
-for review in train.data:
-    MSETrain += (review['stars'] - train.predictRating(review))**2
+for review in reviews.trainData:
+    MSETrain += (review['stars'] - linearModel.predictRating(review))**2
 
-MSETrain /= train.numLines
+MSETrain /= reviews.numLines
 
 # Misclassification
-MisClass = sum( 1.0 for review in train.data if review['stars'] != round(train.predictRating(review)) )/train.numLines
+MisClass = sum( 1.0 for review in reviews.trainData if review['stars'] != round(linearModel.predictRating(review)) )/reviews.numLines
 print "Training RMSE: %s" % math.sqrt(MSETrain)
 print "Training MisClass: %s" % MisClass
 
 # testing error
 MSETest = 0
-for review in train.testData:
-    MSETest += (review['stars'] - train.predictRating(review))**2
+for review in reviews.testData:
+    MSETest += (review['stars'] - linearModel.predictRating(review))**2
 
-MSETest /= train.testLines
+MSETest /= reviews.testLines
 
 print "Test RMSE: %s" % math.sqrt(MSETest)
