@@ -5,16 +5,6 @@ import os.path
 import sys
 from utility import *
 
-
-def extractWordFeatures(x):
-    words, features = x.split(), {}
-    for word in words:
-        if (word in features):
-            features[word] += 1
-        else:
-            features[word] = 1
-    return features
-
 class Data:
     """
     Class to load and handle data.
