@@ -33,16 +33,24 @@ class LinearRegression:
         """
         self.weights = {}
 
+        # Extract all the features before
+        AllFeatures = []
+        for review in self.Data.trainData:
+            text = review['text']
+            AllFeatures.append(self.featureExtractor(text))
+
         for t in range(numIters):
-            for review in self.Data.trainData:
+
+            print "Iteration:", t
+            print "Training error: %s, test error: %s" % (self.getTrainingRMSE(), self.getTestRMSE())
+
+            for index, review in enumerate(self.Data.trainData):
                 star = review['stars']
-                text = review['text']
-                phi = self.featureExtractor(text)
+                phi = AllFeatures[index]
                 phi[self.INTERCEPT] = 1
                 updateCoefficient = dotProduct(self.weights, phi) - star + self.Data.meanRating
                 increment(self.weights, float(-eta*updateCoefficient), phi)
-            for key in self.weights:
-                self.weights[key] *= 0.99
+
     def learnSlow(self, numIters=10, eta = 0.002, momentum=0.0, gamma=0.9):
         """
         Learns a linear predictor based on the featureExtractor.
