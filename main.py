@@ -12,7 +12,7 @@ if len(sys.argv) < 2:
 inputFile = sys.argv[1]
 
 # Import Data
-reviews = Data(inputFile, numLines = 10000, testLines = 1000)
+reviews = Data(inputFile, numLines = 1000, testLines = 100)
 
 # Set up an actual model
 linearModel = LinearRegression(reviews, features.wordFeatures)
@@ -27,6 +27,7 @@ print "Using stemmed word features:"
 linearModel.getInfo()
 
 # Without common words
-cw = features.readCommonWords('../data/common_words.txt')
+cw = features.readCommonWords('common_words.txt')
 noCommonWords = features.wordFeaturesNoCommonWords(cw)
-linearModel = LinearRegression(reviews, noCommonWords)
+linearModel.setNewFeatureExtractor(noCommonWords)
+linearModel.getInfo()

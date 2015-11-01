@@ -25,7 +25,7 @@ class LinearRegression:
         self.featureExtractor = newFeatureExtractor
         self.learn()
 
-    def learn(self, numIters=10, eta = 0.0005):
+    def learn(self, verbose=False, numIters=10, eta = 0.0005):
         """
         Learns a linear predictor based on the featureExtractor.
         Option to set learning rate |eta| and number of iterations
@@ -41,8 +41,9 @@ class LinearRegression:
 
         for t in range(numIters):
 
-            print "Iteration:", t
-            print "Training error: %s, test error: %s" % (self.getTrainingRMSE(), self.getTestRMSE())
+            if verbose:
+                print "Iteration:", t
+                print "Training error: %s, test error: %s" % (self.getTrainingRMSE(), self.getTestRMSE())
 
             for index, review in enumerate(self.Data.trainData):
                 star = review['stars']
@@ -145,6 +146,7 @@ class LinearRegression:
         Prints info about model and various errors.
         """
         print "Using %s training reviews and %s test reviews" % (self.Data.numLines, self.Data.testLines)
+        print "Number of features %s" % len(self.weights)
         print "Training RMSE: %s" % self.getTrainingRMSE()
         print "Training Misclassification: %s" % self.getTrainingMisClass()
         print "Test RMSE: %s" % self.getTestRMSE()
