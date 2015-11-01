@@ -25,3 +25,8 @@ leafWords = ['s','es','ed','er','ly','ing']
 linearModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
 print "Using stemmed word features:"
 linearModel.getInfo()
+
+# Without common words
+cw = features.readCommonWords('../data/common_words.txt')
+noCommonWords = features.wordFeaturesNoCommonWords(cw)
+linearModel = LinearRegression(reviews, noCommonWords)
