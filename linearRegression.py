@@ -8,6 +8,7 @@ class LinearRegression:
 
     def __init__(self, Data, featureExctractor, shuffle=False):
         self.Data = Data
+        self.numLines = Data.numLines
         if(shuffle):
             self.shuffleData()
 
@@ -25,12 +26,15 @@ class LinearRegression:
         self.featureExtractor = newFeatureExtractor
         self.learn()
 
-    def learn(self, verbose=False, numIters=10, eta = 0.0005):
+    def learn(self, verbose=False, numIters=10):
         """
         Learns a linear predictor based on the featureExtractor.
         Option to set learning rate |eta| and number of iterations
         |numIters|.
         """
+        # setting eta as a function of the number of training examples and number of itreations
+        # should prob be something more elaborate
+        eta = 50.0/float(self.numLines * numIters)
         self.weights = {}
 
         # Extract all the features before
