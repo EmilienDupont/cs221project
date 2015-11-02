@@ -34,7 +34,7 @@ class LinearRegression:
         """
         # setting eta as a function of the number of training examples and number of itreations
         # should prob be something more elaborate
-        eta = 50.0/float(self.numLines * numIters)
+        eta = 5.0/float(self.numLines * numIters)
         self.weights = {}
 
         # Extract all the features before
@@ -150,7 +150,8 @@ class LinearRegression:
         Prints info about model and various errors.
         """
         print "Using %s training reviews and %s test reviews" % (self.Data.numLines, self.Data.testLines)
-        print "Number of features %s" % len(self.weights)
+        print "Number of features: %s" % len(self.weights)
+        print "Highest weighted features:", max( (self.weights[weight], weight) for weight in self.weights )
         print "Training RMSE: %s" % self.getTrainingRMSE()
         print "Training Misclassification: %s" % self.getTrainingMisClass()
         print "Test RMSE: %s" % self.getTestRMSE()
