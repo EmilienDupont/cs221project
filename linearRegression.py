@@ -8,6 +8,7 @@ class LinearRegression:
 
     def __init__(self, Data, featureExctractor, shuffle=False):
         self.Data = Data
+        self.numLines = Data.numLines
         if(shuffle):
             self.shuffleData()
 
@@ -25,24 +26,36 @@ class LinearRegression:
         self.featureExtractor = newFeatureExtractor
         self.learn()
 
-    def learn(self, numIters=10, eta = 0.0005):
+    def learn(self, verbose=False, numIters=10):
         """
         Learns a linear predictor based on the featureExtractor.
         Option to set learning rate |eta| and number of iterations
         |numIters|.
         """
+        # setting eta as a function of the number of training examples and number of itreations
+        # should prob be something more elaborate
+        eta = 5.0/float(self.numLines * numIters)
         self.weights = {}
 
+        # Extract all the features before
+        AllFeatures = []
+        for review in self.Data.trainData:
+            text = review['text']
+            AllFeatures.append(self.featureExtractor(text))
+
         for t in range(numIters):
-            for review in self.Data.trainData:
+
+            if verbose:
+                print "Iteration:", t
+                print "Training error: %s, test error: %s" % (self.getTrainingRMSE(), self.getTestRMSE())
+
+            for index, review in enumerate(self.Data.trainData):
                 star = review['stars']
-                text = review['text']
-                phi = self.featureExtractor(text)
+                phi = AllFeatures[index]
                 phi[self.INTERCEPT] = 1
                 updateCoefficient = dotProduct(self.weights, phi) - star + self.Data.meanRating
                 increment(self.weights, float(-eta*updateCoefficient), phi)
-            for key in self.weights:
-                self.weights[key] *= 0.99
+
     def learnSlow(self, numIters=10, eta = 0.002, momentum=0.0, gamma=0.9):
         """
         Learns a linear predictor based on the featureExtractor.
@@ -137,6 +150,8 @@ class LinearRegression:
         Prints info about model and various errors.
         """
         print "Using %s training reviews and %s test reviews" % (self.Data.numLines, self.Data.testLines)
+        print "Number of features: %s" % len(self.weights)
+        print "Highest weighted features:", max( (self.weights[weight], weight) for weight in self.weights )
         print "Training RMSE: %s" % self.getTrainingRMSE()
         print "Training Misclassification: %s" % self.getTrainingMisClass()
         print "Test RMSE: %s" % self.getTestRMSE()
