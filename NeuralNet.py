@@ -2,6 +2,9 @@ from utility import *
 import math
 import numpy as np
 
+from scipy import signal
+from scipy import misc
+
 class CNN:
     """
     Class to perform deep learned neural network big data platform disrupts
@@ -13,30 +16,35 @@ class CNN:
         Relu 
         Pool
      """
-    def __init__(self, filterLength = 3, numFilters = 4):
+    def __init__(self, filterLength = 5, numFilters = 10):
         self.filterLength = filterLength
         self.numFilters = numFilters
         self.Data = []
         self.nGramWeights = []
-        #self.weights1 = np.zeros((numFilters,filterLength)) #filterLength x numFilters
-        #self.weights2 = np.zeros((numFilters,filterLength)) #filterLength x numFilters
-        weight_scale = 0.001
-        bias_scale = 0.00001;
+        
+        weight_scale = 0.05
+        bias_scale = 0.01;
 
         self.grads = {}
+        self.checkGrads = {}
+        self.step = {}
         self.model = {}
         self.model['weights1'] = weight_scale * np.random.randn(numFilters, 1, 1, filterLength)
         self.model['bias1'] = bias_scale * np.random.randn(numFilters)
         self.model['weights2'] = weight_scale * np.random.randn(numFilters, numFilters, 1, filterLength)
         self.model['bias2'] = bias_scale * np.random.randn(numFilters)
         
-        self.conv_param = {'stride': 1, 'pad': (self.filterLength - 1) / 2}
-        self.pool_param = {'pool_height': 1, 'pool_width': 2, 'stride_h': 1, 'stride_w': 2}
+        self.conv_param = {'stride': 1, 'pad': 0}
+        self.pool_param = {'pool_height': 1, 'pool_width': 1, 'stride_h': 1, 'stride_w': 1}
 
-    def SGD(self, learningRate=0.001, decayFactor=0.99, numIters=1):
+    def SGD(self, learningRate=0.001, decayFactor=0.95, momentum = 0.9, numIters=100):
         lr = learningRate
 
+        for key in self.model:
+            self.step[key] = 0
+
         for iter in range(0, numIters):
+            print "Iteration: %d" %(iter)
             for review in self.Data.trainData:
                 star = review['stars']
                 text = review['text']
@@ -44,12 +52,29 @@ class CNN:
                     #print star, text
                     self.predict(text, star) #Calculate gradients on example
                     for key in self.model:
-                        self.model[key] -= lr*self.grads[key]
+                        self.step[key] = self.step[key]*momentum + (1-momentum)*self.grads[key]
+                        self.model[key] -= lr*self.step[key]
+                        #print self.grads[key]
                     lr *= decayFactor
                         #print key
 
         print self.model
+        #print self.grads[key]
         print "done"
+
+        for review in self.Data.trainData:
+            print review['text']
+            print self.predict(review['text']), "truth: ", review['stars']
+
+        #print self.Data.trainData[1]['text']
+        #print self.predict(self.Data.trainData[1]['text']), "truth: ", self.Data.trainData[1]['stars']
+        #print self.Data.trainData[99]['text']
+        #print self.predict(self.Data.trainData[99]['text']), "truth: ", self.Data.trainData[99]['stars']
+
+        print self.Data.testData[0]['text']
+        print self.predict(self.Data.testData[0]['text']), "truth: ", self.Data.testData[0]['stars']
+        #print self.Data.testData[9]['text']
+        #print self.predict(self.Data.testData[9]['text']), "truth: ", self.Data.testData[9]['stars']
 
     def getInfo(self):
             """
@@ -104,14 +129,9 @@ class CNN:
                 valVec.append(self.nGramWeights[word])
         
         #print valVec
-        if(len(valVec)%2 == 0):
-            valMat = np.zeros([1,1,1,len(valVec)])
-            for i in range(0, len(valVec)):
-                valMat[0,0,0,i] = valVec[i]
-        else:
-            valMat = np.zeros([1,1,1,len(valVec)-1])
-            for i in range(0, len(valVec)-1):
-                valMat[0,0,0,i] = valVec[i]
+        valMat = np.zeros([1,1,1,len(valVec)])
+        for i in range(0, len(valVec)):
+            valMat[0,0,0,i] = valVec[i]
 
         return valMat
 
@@ -119,28 +139,50 @@ class CNN:
         self.nGramWeights = unigramModel.weights
         self.Data = unigramModel.Data
 
+    def gradientCheck(self):
+        review = self.Data.trainData[0]
+        text = review['text']
+        star = review['stars']
+        origLoss = self.predict(text, star) #Calculate gradients on example
+        originalGrads = self.grads
+        for key in self.model:
+            self.checkGrads[key] = 0*self.model[key]
+            error = 0
+            for (w,x,y,z), val in np.ndenumerate(self.model[key]):
+                val += 0.01
+                loss = self.predict(text, star)
+                self.checkGrads[key][w,x,y,z] = (loss[0] - origLoss[0])/0.01
+                val -= 0.01
+        print originalGrads
+        print self.checkGrads
+
+
     def Pass(self, valMat, truth):
 
         W1, b1, W2, b2 = self.model['weights1'], self.model['bias1'], self.model['weights2'], self.model['bias2']
+        #W1, b1 = self.model['weights1'], self.model['bias1']
         N, C, H, W = valMat.shape
 
         #Forward Pass
         #Set1 
         #print "Forward Shapes"
-        #print "Input ", valMat.shape
+        #print "Input ", valMat.shape, valMat
         a1, cache1 = self.Conv_Forward(valMat, W1, b1)
-        #print "conv ", a1.shape
+        #print self.model['weights1']
+        #print "conv ", a1.shape, a1
         a2, cache2 = self.ReLu_Forward(a1)
-        #print "ReLu ", a2.shape
+        #print "ReLu ", a2.shape, a2
         a3, cache3 = self.Max_Pool_Forward(a2)
-        #print "pool ", a3.shape
-        #Set 2   
+        #print "pool ", a3.shape, a3
+
         a4, cache4 = self.Conv_Forward(a3, W2, b2)
-        #print "conv ",a4.shape
+        #print self.model['weights1']
+        #print "conv ", a1.shape, a1
         a5, cache5 = self.ReLu_Forward(a4)
-        #print "ReLu ", a5.shape
+        #print "ReLu ", a2.shape, a2
         a6, cache6 = self.Max_Pool_Forward(a5)
-        #print "Pool ", a6.shape
+        #print "pool ", a3.shape, a3
+
         if(truth == None):
             return self.Mean(a6)
 
@@ -148,19 +190,26 @@ class CNN:
         #print "Backward Shapes"
         loss, c1 = self.Mean_Loss(a6, truth)
         #print "after Loss ", c1.shape
-        c2 = self.Max_Pool_Backward(c1, cache6)
+        #print c1
+
+        c5 = self.Max_Pool_Backward(c1, cache6)
         #print "after depool ", c2.shape
-        c3 = self.ReLu_Backward(c2, cache5)
+        #print c2
+        c6 = self.ReLu_Backward(c5, cache5)
         #print "after deRelu ", c3.shape
-        c4,  dW2, db2 = self.Conv_Backward(c3, cache4)
+        #print c3
+        c7,  dW2, db2 = self.Conv_Backward(c6, cache4)
+
+        c2 = self.Max_Pool_Backward(c7, cache3)
+        #print "after depool ", c2.shape
+        #print c2
+        c3 = self.ReLu_Backward(c2, cache2)
+        #print "after deRelu ", c3.shape
+        #print c3
+        c4,  dW1, db1 = self.Conv_Backward(c3, cache1)
         #print "after deconv ", c4.shape
-        #Set 2
-        c5 = self.Max_Pool_Backward(c4, cache3)
-        #print "after depool ", c5.shape
-        c6 = self.ReLu_Backward(c5, cache2)
-        #print "after ReLu", c6.shape
-        c7,  dW1, db1 = self.Conv_Backward(c6, cache1)
-        #print "after deconv ", c7.shape
+        #print c4
+
 
         self.grads = {'weights1': dW1, 'bias1': db1, 'weights2': dW2, 'bias2': db2}
 
@@ -173,24 +222,24 @@ class CNN:
         return self.Pass(self.getWordValueVector(text), truth)
 
     def ReLu_Forward(self, x):
-        out = np.maximum(0, x)
+        #out = np.maximum(0, x)
+        out = np.where(x > 0, x, 0.001*x)
         cache = x
         return out, cache
 
     def ReLu_Backward(self, dout, cache):
         x = cache
-        dx = np.where(x > 0, dout, 0)
+        dx = np.where(x > 0, dout, 0.001*dout)
         return dx
 
     def Mean_Loss(self, x, y):
-        loss = (self.Mean(x) - y)**2
-        dx = x*0.0 + loss/(np.prod(x.shape))
+        loss = 0.5*(self.Mean(x) - y)**2
+        dx = x*0.0 + (self.Mean(x) - y) #/(np.prod(x.shape))
+        #return loss, (dx*0 + 1)
         return loss, dx
 
     def Mean(self, x):
         return np.mean(x)
-
-
 
     def Conv_Forward(self, x, w, b):
         """
@@ -201,36 +250,25 @@ class CNN:
         - out: Output data.
         - cache: (x, w, b, conv_param)
         """
-
         out = None
-
         pad = self.conv_param['pad']
         stride = self.conv_param['stride']
         H = x.shape[2]
-        W = x.shape[3] + 2*pad
+        W = x.shape[3]
         HH = w.shape[2]
         WW = w.shape[3]
         N = x.shape[0]
         F = w.shape[0]
-        l = 0
-        k = 0
 
-        out = np.zeros((N,F,(H-HH)/stride+1, (W-WW)/stride+1))
+        out = np.zeros([N,F,H,W])
 
         for i in xrange(x.shape[0]): #For every data sample
             for j in xrange(x.shape[1]): #For every color
                 temp = x[i,j,:,:] #store layer to make things simpler
-                temp = np.pad(temp, pad, 'constant')
+                #temp = np.pad(temp, pad, 'constant')
                 for f in xrange(w.shape[0]): #For every filter
                     filt = w[f,j,:,:]
-                    k = 0
-                    while k < (temp.shape[0]-2*pad):
-                        l = 0
-                        while l < (temp.shape[1]-2*pad):
-                            seg = temp[k:k + HH,l:l + WW]
-                            out[i,f,k/stride,l/stride] += np.sum(seg*filt) + b[f]/x.shape[1]
-                            l += stride
-                        k += stride
+                    out[i,f,:,:] += signal.correlate2d(temp, filt, mode='same', boundary='fill', fillvalue=0) + b[f]/x.shape[1]
         cache = (x, w, b, self.conv_param)
         return out, cache
 
@@ -249,7 +287,7 @@ class CNN:
         pad = self.conv_param['pad']
         stride = self.conv_param['stride']
         H = x.shape[2]
-        W = x.shape[3] + 2*pad
+        W = x.shape[3]
         HH = w.shape[2]
         WW = w.shape[3]
         N = x.shape[0]
@@ -259,29 +297,18 @@ class CNN:
 
         dw = 0*w
         dx = 0*x
+        mask = np.ones([H - HH + 1, W - WW + 1])
+
 
         for i in xrange(x.shape[0]): #For every data sample
             for j in xrange(x.shape[1]): #For every color
-                temp = x[i,j,:,:] #store layer to make things simpler
-                temp = np.pad(temp, pad, 'constant')
+                temp = dout[i,j,:,:] #store layer to make things simpler
+                #temp = np.pad(temp, pad, 'constant')
                 for f in xrange(w.shape[0]): #For every filter
-                    k = 0
-                    while k < (temp.shape[0]-2*pad): #For every position
-                        l = 0
-                        while l < (temp.shape[1]-2*pad): #For every position
-                            for m in range(k,k+HH): #For every element
-                                for n in range(l,l+WW): #For every element
-                  #out[i,f,k/stride,l/stride] += np.sum(temp[k:k + HH,l:l + WW]*w[f,j,:,:]) + b[f]/x.shape[
-                                    #print '-'
-                                    #print dw.shape, dout.shape, w.shape 
-                                    #print f, j, m-k, n-l
-                                    #print i, f, k/stride,l/stride
-                                    #print f, j, m-k, n-l 
-                                    dw[f,j,m-k,n-l] += dout[i,f,k/stride,l/stride]*temp[m,n]
-                                    if m <= x.shape[2] and n <= x.shape[3] and m >= pad and n >= pad:
-                                        dx[i,j,m-pad,n-pad] += dout[i,f,k/stride,l/stride]*w[f,j,m-k,n-l]
-                            l += stride
-                        k += stride
+                    filt = w[f,j,:,:]
+                    dw[f,j,:,:] += signal.convolve2d(temp, mask, mode='valid')
+                    dx[i,j,:,:] += signal.convolve2d(temp, filt, mode='same', boundary='fill', fillvalue=0)
+
         db = np.sum(dout, (0, 2, 3))
 
         return dx, dw, db
@@ -307,18 +334,22 @@ class CNN:
         sth = self.pool_param['stride_h']
         stw = self.pool_param['stride_w']
         out = np.zeros((N,C,H/ph, W/pw))
-        k = 0
-        l = 0
-        for i in xrange(N):
-            for j in xrange(C):
+        mask = 0*x
+
+        for i in xrange(N): #For each datapoint
+            for j in xrange(C): #For each color
                 k = 0
                 while k < (out.shape[2]):
                     l = 0
                     while l < (out.shape[3]):
-                        out[i,j,k,l] = np.max(x[i,j,k*sth:k*sth + ph,l*stw:l*stw + pw])
+                        temp = x[i,j,k*sth:k*sth + ph,l*stw:l*stw + pw]
+                        a = np.argmax(temp)
+                        b = np.unravel_index(a, temp.shape)
+                        out[i,j,k,l] = temp[b]
+                        mask[i,j,b[0]+k*sth,b[1]+l*stw] = 1
                         l += 1
                     k += 1
-        cache = x
+        cache = mask
         return out, cache
 
     def Max_Pool_Backward(self, dout, cache):
@@ -330,33 +361,31 @@ class CNN:
         Returns:
         - dx: Gradient with respect to x
         """
-        dx = None
         [N,C,H,W ] = dout.shape
-        x = cache
+        mask = cache
+        [NN,CC,HH,WW] = mask.shape
         ph = self.pool_param['pool_height']
         pw = self.pool_param['pool_width']
         sth = self.pool_param['stride_h']
         stw = self.pool_param['stride_w']
-        out = np.zeros((N,C,H/ph, W/pw))
-        dx = np.zeros((N,C,H*ph, W*ph))
-        dx = np.zeros(x.shape)
 
-        for i in xrange(N):
-            for j in xrange(C):
-                k = 0
-                while k < (x.shape[2]):
-                    l = 0
-                    while l < (x.shape[3]-1):
-                        mx = np.max(x[i,j,k:k+ph,l:l+pw])
-                        for m in range(k,k+ph):
-                            for n in range(l,l+pw):
-                                if(x[i,j,m,n] >= mx):
-                                    #print i, j, m, n
-                                    #print i, j, np.floor(k/sth),np.floor(l/stw)
-                                    #print l, stw, dout.shape, dx.shape
-                                    dx[i,j,m,n] = dout[i,j,np.floor(k/sth),np.floor(l/stw)]
-                                else:
-                                    dx[i,j,m,n] = 0
-                        l += stw
-                    k += sth
+        dx = mask
+
+
+        for i in xrange(NN):
+            for j in xrange(CC):
+                n = 0
+                m = 0
+                for k in xrange(HH):
+                    for l in xrange(WW):
+                        if(mask[i,j,k,l] == 1):
+                            dx[i,j,k,l] = dout[i,j,n,m]
+                            n += 1
+                            if(n == H):
+                                n = 0
+                                m += 1
         return dx
+
+
+
+
