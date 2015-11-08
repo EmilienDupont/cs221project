@@ -1,13 +1,6 @@
 import numpy as np
 from sklearn.naive_bayes import MultinomialNB
 
-X = np.random.randint(5, size=(6, 100)) # this is the examples array
-y = np.array([1, 2, 3, 4, 5, 6]) # this is the label array
-clf = MultinomialNB()
-clf.fit(X, y)
-#print(clf.predict(X[2]))
-
-
 class NaiveBayes:
     """
     Class to perform Naive Bayes classification
@@ -23,8 +16,6 @@ class NaiveBayes:
         self.numFeatures = 0
         self.NBPredictor = MultinomialNB() # The Naive Bayes Predictor
 
-        # Convert data to numpy array
-        self.convertDataToArray()
         # Learn the parameters when you instantiate the class
         self.learn()
 
@@ -93,10 +84,13 @@ class NaiveBayes:
                 self.testArray[index, self.featuresToIndex[feature]] = review[feature]
 
 
-    def learn(self):
+    def learn(self, convert=True):
         """
         Learns a Multinomial Naive Bayes predictor based on the featureExtractor.
         """
+        if convert:
+            self.convertDataToArray()
+
         self.NBPredictor.fit(self.trainArray, self.trainLabelArray)
 
     def predict(self, reviewArray):
