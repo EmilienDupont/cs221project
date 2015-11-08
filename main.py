@@ -1,6 +1,6 @@
 import features
 
-from training import *
+from data import *
 from linearRegression import *
 from naiveBayes import *
 
@@ -13,7 +13,7 @@ if len(sys.argv) < 2:
 inputFile = sys.argv[1]
 
 # Import Data
-reviews = Data(inputFile, numLines = 5000, testLines = 500)
+reviews = Data(inputFile, numLines = 10000, testLines = 1000)
 reviews.shuffle()
 
 # Set up Naive Bayes model

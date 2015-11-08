@@ -30,8 +30,6 @@ class Data:
         """
         allData = self.trainData + self.testData
         shuffle(allData)
-        print self.numLines, len(self.trainData)
-        print self.testLines, len(self.testData)
 
     def averageRating(self):
         """
