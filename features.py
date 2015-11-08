@@ -1,3 +1,17 @@
+import string
+import sys
+import unicodedata
+
+# table to store unicode punctuation characters
+tbl = dict.fromkeys(i for i in xrange(sys.maxunicode)
+                      if unicodedata.category(unichr(i)).startswith('P'))
+
+def removePunctuation(text):
+    """
+    Function that removes the punctuation from a unicode formatted input string
+    """
+    return text.translate(tbl)
+
 def readCommonWords(inputFile):
     """
     Reads in the file pointed to by |inputFile| and returns a set of the most common words in
@@ -19,10 +33,12 @@ def wordFeatures(text):
     """
     wordCount = {}
     for word in text.split():
-        if word in wordCount:
-            wordCount[word] += 1
+        # strip a string of punctuation marks
+        wordStripped = removePunctuation(word)
+        if wordStripped in wordCount:
+            wordCount[wordStripped] += 1
         else:
-            wordCount[word] = 1
+            wordCount[wordStripped] = 1
     return wordCount
 
 def wordFeaturesNoCommonWords(commonWords):
@@ -35,8 +51,9 @@ def wordFeaturesNoCommonWords(commonWords):
     def extractor(text):
         wordCount = {}
         for word in text.split():
-            upperCount = sum(1 if c.isupper() else 0 for c in word)
-            lowerWord = word.lower()
+            wordStripped = removePunctuation(word)
+            upperCount = sum(1 if c.isupper() else 0 for c in wordStripped)
+            lowerWord = wordStripped.lower()
             if lowerWord in commonWords:
                 continue
             elif upperCount <= 1:
@@ -45,10 +62,10 @@ def wordFeaturesNoCommonWords(commonWords):
                 else:
                     wordCount[lowerWord] = 1
             else:
-                if word in wordCount:
-                    wordCount[word] += 1
+                if wordStripped in wordCount:
+                    wordCount[wordStripped] += 1
                 else:
-                    wordCount[word] = 1
+                    wordCount[wordStripped] = 1
         return wordCount
     return extractor
 
@@ -81,7 +98,7 @@ def stemmedWordFeatures(leafWords):
     def stemmedWordCount(text):
         wordCount = {}
         for word in text.split():
-            stemWord = stem(word)
+            stemWord = stem(removePunctuation(word))
             if stemWord in wordCount:
                 wordCount[stemWord] += 1
             else:
