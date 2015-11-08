@@ -2,6 +2,7 @@ import features
 
 from training import *
 from linearRegression import *
+from naiveBayes import *
 
 # Analyzing command line arguments
 if len(sys.argv) < 2:
@@ -12,7 +13,11 @@ if len(sys.argv) < 2:
 inputFile = sys.argv[1]
 
 # Import Data
-reviews = Data(inputFile, numLines = 10000, testLines = 100)
+reviews = Data(inputFile, numLines = 10000, testLines = 1000)
+
+# Test out Naive Bayes
+naiveBayesModel = NaiveBayes(reviews, features.wordFeatures)
+naiveBayesModel.getInfo()
 
 # Set up an actual model
 linearModel = LinearRegression(reviews, features.wordFeatures)
