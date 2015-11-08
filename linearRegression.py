@@ -1,5 +1,7 @@
 from utility import *
+import heapq
 import math
+
 
 class LinearRegression:
     """
@@ -53,7 +55,7 @@ class LinearRegression:
                 star = review['stars']
                 phi = AllFeatures[index]
                 phi[self.INTERCEPT] = 1
-                updateCoefficient = dotProduct(self.weights, phi) - star + self.Data.meanRating
+                updateCoefficient = dotProduct(self.weights, phi) - star
                 increment(self.weights, float(-eta*updateCoefficient), phi)
 
     def learnSlow(self, numIters=10, eta = 0.002, momentum=0.0, gamma=0.9):
@@ -103,7 +105,7 @@ class LinearRegression:
         """
         phi = self.featureExtractor(review['text'])
         phi[self.INTERCEPT] = 1
-        prediction = dotProduct(phi, self.weights) + self.Data.meanRating
+        prediction = dotProduct(phi, self.weights)
         if prediction <= 1:
             return 1
         elif prediction >= 5:
@@ -151,7 +153,7 @@ class LinearRegression:
         """
         print "Using %s training reviews and %s test reviews" % (self.Data.numLines, self.Data.testLines)
         print "Number of features: %s" % len(self.weights)
-        print "Highest weighted features:", max( (self.weights[weight], weight) for weight in self.weights )
+        print "Highest weighted features:", max( (self.weights[weight], weight) for weight in self.weights if weight != self.INTERCEPT)
         print "Training RMSE: %s" % self.getTrainingRMSE()
         print "Training Misclassification: %s" % self.getTrainingMisClass()
         print "Test RMSE: %s" % self.getTestRMSE()
