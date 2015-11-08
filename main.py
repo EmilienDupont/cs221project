@@ -13,20 +13,27 @@ if len(sys.argv) < 2:
 inputFile = sys.argv[1]
 
 # Import Data
-reviews = Data(inputFile, numLines = 10000, testLines = 1000)
+reviews = Data(inputFile, numLines = 5000, testLines = 500)
+reviews.shuffle()
 
-# Test out Naive Bayes
+# Set up Naive Bayes model
+print "Naive Bayes with word features"
 naiveBayesModel = NaiveBayes(reviews, features.wordFeatures)
 naiveBayesModel.getInfo()
 
-# Set up an actual model
+print "Naive Bayes with stemmed word features"
+leafWords = ['s','es','ed','er','ly','ing']
+naiveBayesModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
+naiveBayesModel.getInfo()
+
+# Set up linear model
+print "Using linear model"
 linearModel = LinearRegression(reviews, features.wordFeatures)
 print '\n'
 print "Using word features:"
 linearModel.getInfo()
 
 # Change featureExtractor
-leafWords = ['s','es','ed','er','ly','ing']
 linearModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
 print "Using stemmed word features:"
 linearModel.getInfo()

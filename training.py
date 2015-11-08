@@ -3,6 +3,7 @@ import json
 import math
 import os.path
 import sys
+from random import shuffle
 from utility import *
 
 class Data:
@@ -23,8 +24,14 @@ class Data:
         self.meanRating = None
         self.averageRating()
 
-    def letMeSeeThatData(self):
-        print self.trainData
+    def shuffle(self):
+        """
+        Method to shuffle train and test data
+        """
+        allData = self.trainData + self.testData
+        shuffle(allData)
+        print self.numLines, len(self.trainData)
+        print self.testLines, len(self.testData)
 
     def averageRating(self):
         """

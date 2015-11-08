@@ -158,24 +158,6 @@ class LinearRegression:
         print "Test Misclassification: %s" % self.getTestMisClass()
         print "\n"
 
-
-    def shuffleData(self):
-        trainNum = len(self.Data.trainData)
-        testnum = len(self.Data.testData)
-        allData = self.Data.trainData + self.Data.testData
-        self.Data.trainData = []
-        self.Data.testData = []
-
-        lineNum = 0
-        from random import shuffle
-        shuffle(allData)
-        for thing in allData:
-            if lineNum < trainNum:
-                self.Data.trainData.append(thing)
-                lineNum += 1
-            else:
-                self.Data.testData.append(thing)
-
     def crossVal(self):
         #Prep Data
         trainNum = len(self.Data.trainData)
