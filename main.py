@@ -12,22 +12,33 @@ if len(sys.argv) < 2:
 
 inputFile = sys.argv[1]
 
+leafWords = ['s','es','ed','er','ly','ing']
+cw = features.readCommonWords('common_words.txt')
+
 # Import Data
-reviews = Data(inputFile, numLines = 10000, testLines = 1000)
-reviews.shuffle()
+reviews = Data(inputFile, numLines = 1000, testLines = 100)
+
+# Without shuffling
+print "No shuffling"
 
 # Set up Naive Bayes model
-print "Naive Bayes with word features"
+print "Naive Bayes"
+print "Word features:"
 naiveBayesModel = NaiveBayes(reviews, features.wordFeatures)
 naiveBayesModel.getInfo()
 
-print "Naive Bayes with stemmed word features"
-leafWords = ['s','es','ed','er','ly','ing']
+"""
+print "With stemmed word features"
 naiveBayesModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
 naiveBayesModel.getInfo()
 
+print "Without most common words"
+noCommonWords = features.wordFeaturesNoCommonWords(cw)
+naiveBayesModel.setNewFeatureExtractor(noCommonWords)
+naiveBayesModel.getInfo()
+
 # Set up linear model
-print "Using linear model"
+print "Linear model"
 linearModel = LinearRegression(reviews, features.wordFeatures)
 print '\n'
 print "Using word features:"
@@ -39,9 +50,48 @@ print "Using stemmed word features:"
 linearModel.getInfo()
 
 # Without common words
-print 'Please enter path to file with most common words: '
-cwFile = input()
-cw = features.readCommonWords(cwFile)
+#print 'Please enter path to file with most common words: '
+#cwFile = input()
+#cw = features.readCommonWords(cwFile)
 noCommonWords = features.wordFeaturesNoCommonWords(cw)
 linearModel.setNewFeatureExtractor(noCommonWords)
 linearModel.getInfo()
+"""
+print "With Shuffling:"
+reviews.shuffle()
+
+# Set up Naive Bayes model
+print "Naive Bayes"
+print "Word features:"
+naiveBayesModel = NaiveBayes(reviews, features.wordFeatures)
+naiveBayesModel.getInfo()
+"""
+print "With stemmed word features"
+naiveBayesModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
+naiveBayesModel.getInfo()
+
+print "Without most common words"
+noCommonWords = features.wordFeaturesNoCommonWords(cw)
+naiveBayesModel.setNewFeatureExtractor(noCommonWords)
+naiveBayesModel.getInfo()
+
+# Set up linear model
+print "Linear model"
+linearModel = LinearRegression(reviews, features.wordFeatures)
+print '\n'
+print "Using word features:"
+linearModel.getInfo()
+
+# Change featureExtractor
+linearModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
+print "Using stemmed word features:"
+linearModel.getInfo()
+
+# Without common words
+#print 'Please enter path to file with most common words: '
+#cwFile = input()
+#cw = features.readCommonWords(cwFile)
+noCommonWords = features.wordFeaturesNoCommonWords(cw)
+linearModel.setNewFeatureExtractor(noCommonWords)
+linearModel.getInfo()
+"""
