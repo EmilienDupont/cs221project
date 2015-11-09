@@ -13,12 +13,13 @@ if len(sys.argv) < 2:
 inputFile = sys.argv[1]
 
 leafWords = ['s','es','ed','er','ly','ing']
-cw = features.readCommonWords('common_words.txt')
+cw = features.readCommonWords('../data/common_words.txt')
 
 # Import Data
 reviews = Data(inputFile, numLines = 1000, testLines = 100)
 
 # Without shuffling
+"""
 print "No shuffling"
 
 # Set up Naive Bayes model
@@ -27,7 +28,6 @@ print "Word features:"
 naiveBayesModel = NaiveBayes(reviews, features.wordFeatures)
 naiveBayesModel.getInfo()
 
-"""
 print "With stemmed word features"
 naiveBayesModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
 naiveBayesModel.getInfo()
@@ -57,6 +57,8 @@ noCommonWords = features.wordFeaturesNoCommonWords(cw)
 linearModel.setNewFeatureExtractor(noCommonWords)
 linearModel.getInfo()
 """
+
+# same things but with shuffling enabled
 print "With Shuffling:"
 reviews.shuffle()
 
@@ -65,7 +67,7 @@ print "Naive Bayes"
 print "Word features:"
 naiveBayesModel = NaiveBayes(reviews, features.wordFeatures)
 naiveBayesModel.getInfo()
-"""
+
 print "With stemmed word features"
 naiveBayesModel.setNewFeatureExtractor(features.stemmedWordFeatures(leafWords))
 naiveBayesModel.getInfo()
@@ -91,7 +93,7 @@ linearModel.getInfo()
 #print 'Please enter path to file with most common words: '
 #cwFile = input()
 #cw = features.readCommonWords(cwFile)
+print "Without common words"
 noCommonWords = features.wordFeaturesNoCommonWords(cw)
 linearModel.setNewFeatureExtractor(noCommonWords)
 linearModel.getInfo()
-"""
