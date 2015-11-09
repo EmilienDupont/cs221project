@@ -40,12 +40,22 @@ class Data:
         self.meanRating = sum( float(review['stars']) for review in self.trainData )/self.numLines
         return self.meanRating
 
-    def modeRating(self):
+    def ratingDistribution(self):
         """
         Calculates most common rating of reviews
         """
-        C = collections.Counter()
+        starDistribution = collections.Counter()
         for review in self.trainData:
-            s = review['stars']
-            C.update({s:1})
-        return C.most_common(1)[0][0]
+            star = review['stars']
+            starDistribution.update({star:1})
+        return starDistribution
+
+    def getInfo(self):
+        """
+        Prints info about data
+        """
+        print "%s training reviews and %s test reviews" % (self.numLines, self.testLines)
+        print "Average rating: ", self.averageRating()
+        distribution = self.ratingDistribution()
+        for rating in distribution:
+            print "%s reviews with %s star(s)" % (distribution[rating], rating)
