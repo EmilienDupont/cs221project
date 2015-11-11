@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse
 from sklearn.naive_bayes import MultinomialNB
 
 class NaiveBayes:
@@ -70,18 +71,30 @@ class NaiveBayes:
 
         # Array will have an example on each row
         # The columns will correspond to each feature
-        self.trainArray = np.zeros((self.Data.numLines, self.numFeatures), dtype = np.int)
-        self.testArray = np.zeros((self.Data.testLines, self.numFeatures), dtype = np.int)
+        #self.trainArray = np.zeros((self.Data.numLines, self.numFeatures), dtype = np.int)
+        #self.testArray = np.zeros((self.Data.testLines, self.numFeatures), dtype = np.int)
+        rowTrain = []; colTrain = []; entriesTrain = []
+        rowTest = []; colTest = []; entriesTest = []
 
         # Fill out the train array
         for index, review in enumerate(AllFeatures):
             for feature in review:
-                self.trainArray[index, self.featuresToIndex[feature]] = review[feature]
+                rowTrain.append(index)
+                colTrain.append(self.featuresToIndex[feature])
+                entriesTrain.append(review[feature])
+                #self.trainArray[index, self.featuresToIndex[feature]] = review[feature]
+
+        self.trainArray = scipy.sparse.coo_matrix((entriesTrain, (rowTrain, colTrain)), (self.Data.numLines, self.numFeatures), dtype = np.int)
 
         # Fill out the test array
         for index, review in enumerate(AllTestFeatures):
             for feature in review:
-                self.testArray[index, self.featuresToIndex[feature]] = review[feature]
+                rowTest.append(index)
+                colTest.append(self.featuresToIndex[feature])
+                entriesTest.append(review[feature])
+                #self.testArray[index, self.featuresToIndex[feature]] = review[feature]
+
+        self.testArray = scipy.sparse.coo_matrix((entriesTest, (rowTest, colTest)), (self.Data.testLines, self.numFeatures), dtype = np.int)
 
 
     def learn(self, convert=True):
