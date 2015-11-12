@@ -16,15 +16,16 @@ class CNN:
         Relu 
         Pool
      """
-    def __init__(self, filterLength = 5, numFilters = 10):
+    def __init__(self, filterLength = 5, numFilters = 5):
         self.filterLength = filterLength
         self.numFilters = numFilters
         self.Data = []
         self.nGramWeights = []
         
-        self.weight_scale = 0.0001
-        self.bias_scale = 0.001
+        self.weight_scale = 1
+        self.bias_scale = 0.01
 
+        self.labelVec = []
         self.grads = {}
         self.checkGrads = {}
         self.step = {}
@@ -37,9 +38,9 @@ class CNN:
         self.wordGrads = {}
         
         self.conv_param = {'stride': 1, 'pad': 0}
-        self.pool_param = {'pool_height': 1, 'pool_width': 1, 'stride_h': 1, 'stride_w': 1}
+        self.pool_param = {'pool_height': 1, 'pool_width': 3, 'stride_h': 1, 'stride_w': 3}
 
-    def SGD(self, learningRate=0.001, decayFactor=0.95, momentum = 0.5, numIters=100):
+    def SGD(self, learningRate=0.1, decayFactor=0.95, momentum = 0.0, numIters=100):
         #First, put all training words in the dictionary, if they aren't there
         for review in self.Data.trainData:
             text = review['text']
@@ -57,17 +58,23 @@ class CNN:
             for review in self.Data.trainData:
                 star = review['stars']
                 text = review['text']
-                if len(text.split()) > 3:
+                if len(text.split()) > 15:
                     #print star, text
                     self.predict(text, star) #Calculate gradients on example
                     for key in self.model:
                         self.step[key] = self.step[key]*momentum + (1-momentum)*self.grads[key]
                         self.model[key] -= lr*self.step[key]
                         #print self.grads[key]
+                    for i in xrange(len(self.labelVec)):
+                        #print self.dx.shape
+                        #print self.labelVec
+                        #print 1
+                        self.wordWeights[self.labelVec[i]] -= lr*self.dx[0,0,0,i]
                     lr *= decayFactor
                         #print key
 
         print self.model
+        print self.wordWeights
         #print self.grads[key]
         print "done"
 
@@ -129,9 +136,13 @@ class CNN:
 
     def getWordValueVector(self, text):
         valVec = []
+        self.labelVec = []
         for word in text.split():
-            if(word in self.nGramWeights):
-                valVec.append(self.nGramWeights[word])
+            if(word in self.wordWeights):
+                #valVec.append(self.nGramWeights[word])
+                valVec.append(self.wordWeights[word])
+                self.labelVec.append(word)
+
         
         #print valVec
 
@@ -152,16 +163,28 @@ class CNN:
         star = review['stars']
 
         n = len(text.split())
-        a = np.random.randn(1, 1, 1, n)
+        a = 0.001*np.random.randn(1, 1, 1, n)
         #print n
         #print np.sum(a)
+        gradval = 0.00001
 
         origLoss= self.predict2(a, star) #Calculate gradients on example
+        dx = self.dx
+        self.checkdx = dx*0
         originalGrads = self.grads
+        for (w,x,y,z), val in np.ndenumerate(a):
+            a[w,x,y,z] += gradval
+            loss = self.predict2(a, star)
+            self.checkdx[w,x,y,z] = (loss - origLoss)/gradval
+            a[w,x,y,z] -= gradval
+        error = np.mean(np.abs(dx - self.checkdx))/np.mean(np.abs(dx))
+        print dx, self.checkdx
+        print "dx Mean Error: ", error
+
         for key in self.model:
             self.checkGrads[key] = 0*self.model[key]
             error = 0
-            gradval = 0.00001
+            
             if(len(self.model[key].shape) == 4):
                 #print "here"
                 for (w,x,y,z), val in np.ndenumerate(self.model[key]):
@@ -199,53 +222,53 @@ class CNN:
         #Set1 
         #print "Forward Shapes"
         #print "Input ", valMat.shape, valMat
-        a1, cache1 = self.Conv_Forward(valMat, W1, b1)
+        x, cache1 = self.Conv_Forward(valMat, W1, b1)
         #print self.model['weights1']
         #print "conv ", a1.shape, a1
-        a2, cache2 = self.ReLu_Forward(a1)
+        x, cache2 = self.ReLu_Forward(x)
         #print "ReLu ", a2.shape, a2
-        a3, cache3 = self.Max_Pool_Forward(a2)
+        x, cache3 = self.Max_Pool_Forward(x)
         #print "pool ", a3.shape, a3
 
-        a4, cache4 = self.Conv_Forward(a3, W2, b2)
+        x, cache4 = self.Conv_Forward(x, W2, b2)
         #print self.model['weights1']
         #print "conv ", a1.shape, a1
-        a5, cache5 = self.ReLu_Forward(a4)
+        x, cache5 = self.ReLu_Forward(x)
         #print "ReLu ", a2.shape, a2
-        a6, cache6 = self.Max_Pool_Forward(a5)
+        x, cache6 = self.Max_Pool_Forward(x)
         #print "pool ", a3.shape, a3
 
         if(truth == None):
-            return self.Mean(a6)
+            return self.Mean(x)
 
         #Backward Pass
         #print "Backward Shapes"
-        loss, c1 = self.Mean_Loss(a6, truth)
+        loss, dout = self.Mean_Loss(x, truth)
         #print "after Loss ", c1.shape
         #print c1
 
-        c5 = self.Max_Pool_Backward(c1, cache6)
+        dout = self.Max_Pool_Backward(dout, cache6)
         #print "after depool ", c2.shape
         #print c2
-        c6 = self.ReLu_Backward(c5, cache5)
+        dout = self.ReLu_Backward(dout, cache5)
         #print "after deRelu ", c3.shape
         #print c3
-        c7,  dW2, db2 = self.Conv_Backward(c6, cache4)
+        dout,  dW2, db2 = self.Conv_Backward(dout, cache4)
 
-        c2 = self.Max_Pool_Backward(c7, cache3)
+        dout = self.Max_Pool_Backward(dout, cache3)
         #print "after depool ", c2.shape
         #print c2
-        c3 = self.ReLu_Backward(c2, cache2)
+        dout = self.ReLu_Backward(dout, cache2)
         #print "after deRelu ", c3.shape
         #print c3
-        c4,  dW1, db1 = self.Conv_Backward(c3, cache1)
+        dout,  dW1, db1 = self.Conv_Backward(dout, cache1)
         #print "after deconv ", c4.shape
         #print c4
 
-
+        self.dx = dout
         self.grads = {'weights1': dW1, 'bias1': db1, 'weights2': dW2, 'bias2': db2}
 
-        return self.Mean(a6), self.grads
+        return self.Mean(x), self.grads
 
     def Pass2(self, valMat, truth):
 
@@ -257,21 +280,23 @@ class CNN:
         #Set1 
         #print "Forward Shapes"
         #print "Input ", valMat.shape, valMat
-        a1, cache1 = self.Conv_Forward(valMat, W1, b1)
+        #a1, cache1 = self.Conv_Forward(valMat, W1, b1)
         #print self.model['weights1']
         #print "conv ", a1.shape, a1
+        a1 = valMat
         #a2, cache2 = self.ReLu_Forward(a1)
         #print "ReLu ", a2.shape, a2
-        #a3, cache3 = self.Max_Pool_Forward(a2)
+        a2, cache3 = self.Max_Pool_Forward(a1)
+        #print a3
         #print "pool ", a3.shape, a3
 
 
         if(truth == None):
-            return self.Mean(a1)
+            return self.Mean(a2)
 
         #Backward Pass
         #print "Backward Shapes"
-        loss, c1 = self.Mean_Loss(a1, truth)
+        loss, c1 = self.Mean_Loss(a2, truth)
         #print "after Loss ", c1.shape
         #print c1
 
@@ -283,20 +308,20 @@ class CNN:
         #print c3
         #c7,  dW2, db2 = self.Conv_Backward2(c6, cache4)
 
-        #c2 = self.Max_Pool_Backward(c7, cache3)
+        c2 = self.Max_Pool_Backward(c1, cache3)
         #print "after depool ", c2.shape
         #print c2
-        #c3 = self.ReLu_Backward(c2, cache2)
+        #c2 = self.ReLu_Backward(c1, cache2)
         #print "after deRelu ", c3.shape
         #print c3
-        c4,  dW1, db1 = self.Conv_Backward(c1, cache1)
+        #c4,  dW1, db1 = self.Conv_Backward(c1, cache1)
         #print "after deconv ", c4.shape
         #print c4
 
+        self.dx = c2
+        #self.grads = {'weights1': dW1, 'bias1': db1}
 
-        self.grads = {'weights1': dW1, 'bias1': db1}
-
-        return self.Mean_Loss(a1, truth)[0]
+        return self.Mean_Loss(a2, truth)[0]
 
 
     def backprop(self, text):
@@ -310,13 +335,15 @@ class CNN:
 
     def ReLu_Forward(self, x):
         #out = np.maximum(0, x)
-        out = np.where(x > 0, x, 0.0001*x)
+        #print x
+        out = np.where(x > 0, x, 0.00001*x)
         cache = x
+        #print out
         return out, cache
 
     def ReLu_Backward(self, dout, cache):
         x = cache
-        dx = np.where(x > 0, dout, 0.0001*dout)
+        dx = np.where(x > 0, dout, 0.00001*dout)
         return dx
 
     def Mean_Loss(self, x, y):
@@ -395,6 +422,7 @@ class CNN:
                     filt = w[f,j,:,:]
                     dw[f,j,:,:] += signal.convolve2d(dtemp2, xtemp, mode='valid')
                     dx[i,j,:,:] += signal.convolve2d(dtemp, filt, mode='same', boundary='fill', fillvalue=0)
+
         db = np.sum(dout, (0, 2, 3))
 
         return dx, dw, db
@@ -464,9 +492,9 @@ class CNN:
                 for k in xrange(HH):
                     for l in xrange(WW):
                         if(mask[i,j,k,l] == 1):
-                            dx[i,j,k,l] = dout[i,j,n,m]
+                            dx[i,j,k,l] = dout[i,j,m,n]
                             n += 1
-                            if(n == H):
+                            if(n == W):
                                 n = 0
                                 m += 1
         return dx
