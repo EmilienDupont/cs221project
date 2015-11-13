@@ -1,11 +1,12 @@
 from utility import *
 import math
 import numpy as np
+from data import shuffle
 
 from scipy import signal
 from scipy import misc
 
-class CNN:
+class NeuralNet:
     """
     Class to perform deep learned neural network big data platform disrupts
     Structure:
@@ -16,14 +17,32 @@ class CNN:
         Relu 
         Pool
      """
-    def __init__(self, filterLength = 5, numFilters = 5):
+    def __init__(self, Data, filterLength = 5, numFilters = 5, shuffle = False):
         self.filterLength = filterLength
         self.numFilters = numFilters
-        self.Data = []
+        self.Data = Data
+
         self.nGramWeights = []
         
+        #Initialize weights randomly in different ranges
         self.weight_scale = 1
-        self.bias_scale = 0.01
+        self.bias_scale = 1
+
+        #Have different learning rates for different weights
+        self.mult = {}
+        self.mult['weights1'] = 1
+        self.mult['bias1'] = 2
+        self.mult['weights2'] = 1
+        self.mult['bias2'] = 2
+        self.mult['words'] = 1
+
+        #Have regularization
+        self.reg = {}
+        self.reg['weights1'] = 0.00001
+        self.reg['bias1'] = 0
+        self.reg['weights2'] = 0.00001
+        self.reg['bias2'] = 0
+        self.reg['words'] = 0.00001
 
         self.labelVec = []
         self.grads = {}
@@ -38,15 +57,15 @@ class CNN:
         self.wordGrads = {}
         
         self.conv_param = {'stride': 1, 'pad': 0}
-        self.pool_param = {'pool_height': 1, 'pool_width': 3, 'stride_h': 1, 'stride_w': 3}
+        self.pool_param = {'pool_height': 1, 'pool_width': 2, 'stride_h': 1, 'stride_w': 2}
 
-    def SGD(self, learningRate=0.1, decayFactor=0.95, momentum = 0.0, numIters=100):
+    def SGD(self, learningRate=0.2, decayFactor=0.95, momentum = 0.9, numIters=100):
         #First, put all training words in the dictionary, if they aren't there
         for review in self.Data.trainData:
             text = review['text']
             for word in text.split():
                 if(not word in self.wordWeights):
-                    self.wordWeights[word] = self.weight_scale*np.random.randn(1)
+                    self.wordWeights[word] = np.random.randn(1)*self.weight_scale
 
         lr = learningRate
 
@@ -55,38 +74,62 @@ class CNN:
 
         for iter in range(0, numIters):
             print "Iteration: %d" %(iter)
+            sumLoss = 0
+            numValid = 0
             for review in self.Data.trainData:
                 star = review['stars']
                 text = review['text']
                 if len(text.split()) > 15:
                     #print star, text
-                    self.predict(text, star) #Calculate gradients on example
+                    loss = self.predict(text, star) #Calculate gradients on example
                     for key in self.model:
-                        self.step[key] = self.step[key]*momentum + (1-momentum)*self.grads[key]
-                        self.model[key] -= lr*self.step[key]
+                        #Calculate step with momentum
+                        #self.step[key] = self.step[key]*momentum + (1-momentum)*self.grads[key]
+                        self.step[key] = self.grads[key]
+                        #Update weights
+                        self.model[key] -= self.mult[key]*lr*self.step[key] + self.reg[key]*self.model[key]
                         #print self.grads[key]
                     for i in xrange(len(self.labelVec)):
-                        #print self.dx.shape
-                        #print self.labelVec
-                        #print 1
-                        self.wordWeights[self.labelVec[i]] -= lr*self.dx[0,0,0,i]
-                    lr *= decayFactor
-                        #print key
+                        #Update word weights
+                        self.wordWeights[self.labelVec[i]] -= self.mult['words']*lr*self.dx[0,0,0,i] + self.reg['words']*self.wordWeights[self.labelVec[i]] 
+                    sumLoss += loss
+                    numValid += 1.0
+            lr *= decayFactor
+            print "Mean loss: ", sumLoss/numValid, " Learning Rate: ", lr
 
-        print self.model
-        print self.wordWeights
-        #print self.grads[key]
-        print "done"
-
+    def test(self, verbose = False):
+        predictions = []
+        truths = []
         for review in self.Data.trainData:
-            print review['text']
-            print self.predict(review['text']), "truth: ", review['stars']
+            if(len(review['text'].split()) > 15):
+                predictions.append(int(round(self.predict(review['text']))))
+            else:
+                predictions.append(4)
+            truths.append(review['stars'])
+        wrong = 0
+        total = 0
+        for i in xrange(len(predictions)):
+            if(predictions[i] != truths[i]):
+                wrong += 1
+            total += 1
+        print "Train Misclassification Rate: ", float(wrong)/float(total) 
 
+        predictions = []
+        truths = []
+        for review in self.Data.testData:
+            if(len(review['text'].split()) > 15):
+                predictions.append(int(round(self.predict(review['text']))))
+            else:
+                predictions.append(4)
+            truths.append(review['stars'])
+        wrong = 0
+        total = 0
+        for i in xrange(len(predictions)):
+            if(predictions[i] != truths[i]):
+                wrong += 1
+            total += 1
+        print "Test Misclassification Rate: ", float(wrong)/float(total) 
 
-        print self.Data.testData[0]['text']
-        print self.predict(self.Data.testData[0]['text']), "truth: ", self.Data.testData[0]['stars']
-        #print self.Data.testData[9]['text']
-        #print self.predict(self.Data.testData[9]['text']), "truth: ", self.Data.testData[9]['stars']
 
     def getInfo(self):
             """
@@ -268,7 +311,7 @@ class CNN:
         self.dx = dout
         self.grads = {'weights1': dW1, 'bias1': db1, 'weights2': dW2, 'bias2': db2}
 
-        return self.Mean(x), self.grads
+        return self.Mean_Loss(x, truth)[0]
 
     def Pass2(self, valMat, truth):
 
@@ -336,24 +379,26 @@ class CNN:
     def ReLu_Forward(self, x):
         #out = np.maximum(0, x)
         #print x
-        out = np.where(x > 0, x, 0.00001*x)
+        out = np.where(x > 0, x, 0.001*x)
         cache = x
         #print out
         return out, cache
 
     def ReLu_Backward(self, dout, cache):
         x = cache
-        dx = np.where(x > 0, dout, 0.00001*dout)
+        dx = np.where(x > 0, dout, 0.001*dout)
         return dx
 
     def Mean_Loss(self, x, y):
         loss = 0.5*(self.Mean(x) - y)**2
-        dx = x*0.0 + (self.Mean(x) - y)/(np.prod(x.shape))
+        #dx = x*0.0 + (self.Mean(x) - y)/(np.prod(x.shape))
+        dx = x*0.0 + (self.Mean(x) - y)/np.sum(np.where(x > 0))
         #return loss, (dx*0 + 1)
         return loss, dx
 
     def Mean(self, x):
-        return np.mean(x) #/np.sum(np.where(x > 0))
+        #return np.mean(x)
+        return np.sum(x)/np.sum(np.where(x > 0))
 
     def Conv_Forward(self, x, w, b):
         """
@@ -498,124 +543,3 @@ class CNN:
                                 n = 0
                                 m += 1
         return dx
-
-    def Conv_Forward2(self, x, w, b):
-      """
-      A naive implementation of the forward pass for a convolutional layer.
-
-      The input consists of N data points, each with C channels, height H and width
-      W. We convolve each input with F different filters, where each filter spans
-      all C channels and has height HH and width HH.
-
-      Input:
-      - x: Input data of shape (N, C, H, W)
-      - w: Filter weights of shape (F, C, HH, WW)
-      - b: Biases, of shape (F,)
-      - conv_param: A dictionary with the following keys:
-        - 'stride': The number of pixels between adjacent receptive fields in the
-          horizontal and vertical directions.
-        - 'pad': The number of pixels that will be used to zero-pad the input.
-
-      Returns a tuple of:
-      - out: Output data.
-      - cache: (x, w, b, conv_param)
-      """
-      out = None
-      #############################################################################
-      # TODO: Implement the convolutional forward pass.                           #
-      # Hint: you can use the function np.pad for padding.                        #
-      #############################################################################
-      pad = self.conv_param['pad']
-      stride = self.conv_param['stride']
-      H = x.shape[2] + 2*pad
-      W = x.shape[3] + 2*pad
-      HH = w.shape[2]
-      WW = w.shape[3]
-      N = x.shape[0]
-      F = w.shape[0]
-      l = 0
-      k = 0
-      #print stride
-
-      out = np.zeros((N,F,(H-HH)/stride+1, (W-WW)/stride+1))
-
-      for i in xrange(x.shape[0]): #For every data sample
-        for j in xrange(x.shape[1]): #For every color
-            temp = x[i,j,:,:] #store layer to make things simpler
-            temp = np.pad(temp, pad, 'constant')
-            for f in xrange(w.shape[0]): #For every filter
-              filt = w[f,j,:,:]
-              k = 0
-              while k < (temp.shape[0]-2*pad):
-                l = 0
-                while l < (temp.shape[1]-2*pad):
-                  seg = temp[k:k + HH,l:l + WW]
-                  out[i,f,k/stride,l/stride] += np.sum(seg*filt) + b[f] #/w.shape[0]
-                  l += stride
-                k += stride
-
-      #############################################################################
-      #                             END OF YOUR CODE                              #
-      #############################################################################
-      cache = (x, w, b, self.conv_param)
-      return out, cache
-
-
-    def Conv_Backward2(self, dout, cache):
-      """
-      A naive implementation of the backward pass for a convolutional layer.
-
-      Inputs:
-      - dout: Upstream derivatives.
-      - cache: A tuple of (x, w, b, conv_param) as in conv_forward_naive
-
-      Returns a tuple of:
-      - dx: Gradient with respect to x
-      - dw: Gradient with respect to w
-      - db: Gradient with respect to b
-      """
-      dx, dw, db = None, None, None
-      #############################################################################
-      # TODO: Implement the convolutional backward pass.                          #
-      #############################################################################
-      [x, w, b, conv_param] = cache
-      #print x.shape, dout.shape, w.shape
-      pad = self.conv_param['pad']
-      stride = self.conv_param['stride']
-      H = x.shape[2] + 2*pad
-      W = x.shape[3] + 2*pad
-      HH = w.shape[2]
-      WW = w.shape[3]
-      N = x.shape[0]
-      F = w.shape[0]
-      l = 0
-      k = 0
-
-      dw = 0*w
-      dx = 0*x
-
-      for i in xrange(x.shape[0]): #For every data sample
-        for j in xrange(x.shape[1]): #For every color
-            temp = x[i,j,:,:] #store layer to make things simpler
-            temp = np.pad(temp, pad, 'constant')
-            for f in xrange(w.shape[0]): #For every filter
-              k = 0
-              while k < (temp.shape[0]-2*pad): #For every position
-                l = 0
-                while l < (temp.shape[1]-2*pad): #For every position
-                  for m in range(k,k+HH): #For every element
-                    for n in range(l,l+WW): #For every element
-                      #out[i,f,k/stride,l/stride] += np.sum(temp[k:k + HH,l:l + WW]*w[f,j,:,:]) + b[f]/x.shape[1]
-                      dw[f,j,m-k,n-l] += dout[i,f,k/stride,l/stride]*temp[m,n]
-                      if m <= x.shape[2] and n <= x.shape[3] and m >= pad and n >= pad:
-                        dx[i,j,m-pad,n-pad] += dout[i,f,k/stride,l/stride]*w[f,j,m-k,n-l]
-                  l += stride
-                k += stride
-
-
-
-      db = np.sum(dout, (0, 2, 3))
-      #############################################################################
-      #                             END OF YOUR CODE                              #
-      #############################################################################
-      return dx, dw, db
