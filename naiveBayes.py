@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import scipy.sparse
 from sklearn.naive_bayes import MultinomialNB
@@ -149,6 +150,26 @@ class NaiveBayes:
         else:
             return confusionMatrix
 
+    def getTestRMSE(self):
+        """
+        Returns a Root Mean Squared Error on test set.
+        """
+        MSETest = 0.0
+        predictedLabels = self.predict(self.testArray)
+        for i, prediction in enumerate(predictedLabels):
+            MSETest += (prediction - self.testLabelArray[i])**2
+        return math.sqrt( MSETest/self.Data.testLines )
+
+    def getTrainingRMSE(self):
+        """
+        Returns a Root Mean Squared Error on training set.
+        """
+        MSETrain = 0.0
+        predictedLabels = self.predict(self.trainArray)
+        for i, prediction in enumerate(predictedLabels):
+            MSETrain += (prediction - self.trainLabelArray[i])**2
+        return math.sqrt( MSETrain/self.Data.numLines )
+
     def getInfo(self):
         """
         Prints info about model and various errors.
@@ -157,6 +178,8 @@ class NaiveBayes:
         print "Number of features: %s" % self.numFeatures
         print "Training Misclassification: %s" % self.getTrainingMisClass()
         print "Test Misclassification: %s" % self.getTestMisClass()
+        print "Train RMSE: %s" % self.getTrainingRMSE()
+        print "Test RMSE: %s" % self.getTestRMSE()
         print "Confusion Matrix: "
         print self.getConfusionMatrix()
         print "\n"
