@@ -2,6 +2,8 @@ import numpy as np
 import scipy.sparse
 from sklearn.naive_bayes import MultinomialNB
 
+np.set_printoptions(precision=2) # Print only 2 digits
+
 class NaiveBayes:
     """
     Class to perform Naive Bayes classification
@@ -128,6 +130,25 @@ class NaiveBayes:
         labelDifference = np.subtract(predictedLabels, self.testLabelArray)
         return sum( 1.0 for difference in labelDifference if difference != 0 )/self.Data.testLines
 
+
+    def getConfusionMatrix(self, asFraction = True):
+        """
+        Returns confusion matrix.
+        Row: True Value
+        Column: Prediction
+        Entries: Counts
+        asFraction: if False return counts, otherwise fraction
+        """
+        predictedLabels = self.predict(self.testArray)
+        confusionMatrix = np.zeros((5,5), np.int)
+        for i, prediction in enumerate(predictedLabels):
+            confusionMatrix[self.testLabelArray[i] - 1, prediction - 1] += 1
+        if asFraction:
+            rowSums = confusionMatrix.sum(axis=1)
+            return confusionMatrix.astype(float)/rowSums[:, np.newaxis]
+        else:
+            return confusionMatrix
+
     def getInfo(self):
         """
         Prints info about model and various errors.
@@ -136,4 +157,6 @@ class NaiveBayes:
         print "Number of features: %s" % self.numFeatures
         print "Training Misclassification: %s" % self.getTrainingMisClass()
         print "Test Misclassification: %s" % self.getTestMisClass()
+        print "Confusion Matrix: "
+        print self.getConfusionMatrix()
         print "\n"
