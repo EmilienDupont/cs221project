@@ -5,6 +5,7 @@ from data import shuffle
 
 from scipy import signal
 from scipy import misc
+import collections
 
 class NeuralNet:
     """
@@ -17,7 +18,7 @@ class NeuralNet:
         Relu 
         Pool
      """
-    def __init__(self, Data, filterLength = 5, numFilters = 7):
+    def __init__(self, Data, filterLength = 3, numFilters = 7):
         self.filterLength = filterLength
         self.numFilters = numFilters
         self.Data = Data
@@ -30,7 +31,7 @@ class NeuralNet:
 
         #Have different learning rates for different weights
         self.mult = {}
-        self.mult['weights1'] = 2
+        self.mult['weights1'] = 5
         self.mult['bias1'] = 1
         self.mult['weights2'] = 2
         self.mult['bias2'] = 1
@@ -65,13 +66,18 @@ class NeuralNet:
         self.conv_param = {'stride': 1, 'pad': 0}
         self.pool_param = {'pool_height': 1, 'pool_width': 2, 'stride_h': 1, 'stride_w': 2}
 
-    def SGD(self, learningRate=0.5, decayFactor=0.95, numIters=5):
+    def SGD(self, learningRate=0.1, decayFactor=0.95, numIters=5, minFreq = 10):
         #First, put all training words in the dictionary, if they aren't there
+        occurrences = collections.Counter()
         for review in self.Data.trainData:
             text = review['text']
             for word in text.split():
+                occurrences.update({word : 1})
                 if(not word in self.wordWeights):
                     self.wordWeights[word] = np.random.randn(1)*self.weight_scale
+        for key in occurrences:
+            if occurrences[key] < minFreq:
+                del self.wordWeights[key]
 
         #print self.wordWeights
 
@@ -114,11 +120,15 @@ class NeuralNet:
             truths.append(review['stars'])
         wrong = 0
         total = 0
+        err = 0
         for i in xrange(len(predictions)):
+            err += (predictions[i] - truths[i])**2
             if(predictions[i] != truths[i]):
                 wrong += 1
             total += 1
         print "Train Misclassification Rate: ", float(wrong)/float(total) 
+        print "Train RMSE: ", (float(err)/float(total))**(0.5)
+
 
         predictions = []
         truths = []
@@ -130,11 +140,14 @@ class NeuralNet:
             truths.append(review['stars'])
         wrong = 0
         total = 0
+        err = 0
         for i in xrange(len(predictions)):
+            err += (predictions[i] - truths[i])**2
             if(predictions[i] != truths[i]):
                 wrong += 1
             total += 1
         print "Test Misclassification Rate: ", float(wrong)/float(total) 
+        print "Test RMSE: ", (float(err)/float(total))**(0.5)
 
 
     def getInfo(self):
