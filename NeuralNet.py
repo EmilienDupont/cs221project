@@ -17,7 +17,7 @@ class NeuralNet:
         Relu 
         Pool
      """
-    def __init__(self, Data, filterLength = 5, numFilters = 5, shuffle = False):
+    def __init__(self, Data, filterLength = 5, numFilters = 7):
         self.filterLength = filterLength
         self.numFilters = numFilters
         self.Data = Data
@@ -25,23 +25,27 @@ class NeuralNet:
         self.nGramWeights = []
         
         #Initialize weights randomly in different ranges
-        self.weight_scale = 1
-        self.bias_scale = 1
+        self.weight_scale = 0.1
+        self.bias_scale = 0.01
 
         #Have different learning rates for different weights
         self.mult = {}
-        self.mult['weights1'] = 1
-        self.mult['bias1'] = 2
-        self.mult['weights2'] = 1
-        self.mult['bias2'] = 2
-        self.mult['words'] = 1
+        self.mult['weights1'] = 2
+        self.mult['bias1'] = 1
+        self.mult['weights2'] = 2
+        self.mult['bias2'] = 1
+        self.mult['weights3'] = 2
+        self.mult['bias3'] = 1
+        self.mult['words'] = 2
 
         #Have regularization
         self.reg = {}
         self.reg['weights1'] = 0.00001
-        self.reg['bias1'] = 0
+        self.reg['bias1'] = 0.00000
         self.reg['weights2'] = 0.00001
-        self.reg['bias2'] = 0
+        self.reg['bias2'] = 0.00000
+        self.reg['weights3'] = 0.00001
+        self.reg['bias3'] = 0.00000
         self.reg['words'] = 0.00001
 
         self.labelVec = []
@@ -51,15 +55,17 @@ class NeuralNet:
         self.model = {}
         self.model['weights1'] = self.weight_scale * np.random.randn(numFilters, 1, 1, filterLength)
         self.model['bias1'] = self.bias_scale * np.random.randn(numFilters)
-        self.model['weights2'] = self.weight_scale * np.random.randn(numFilters, numFilters, 1, filterLength)
-        self.model['bias2'] = self.bias_scale * np.random.randn(numFilters)
+        #self.model['weights2'] = self.weight_scale * np.random.randn(numFilters, numFilters, 1, filterLength)
+        #self.model['bias2'] = self.bias_scale * np.random.randn(numFilters)
+        #self.model['weights3'] = self.weight_scale * np.random.randn(numFilters, numFilters, 1, filterLength)
+        #self.model['bias3'] = self.bias_scale * np.random.randn(numFilters)
         self.wordWeights = {}
         self.wordGrads = {}
         
         self.conv_param = {'stride': 1, 'pad': 0}
         self.pool_param = {'pool_height': 1, 'pool_width': 2, 'stride_h': 1, 'stride_w': 2}
 
-    def SGD(self, learningRate=0.2, decayFactor=0.95, momentum = 0.9, numIters=100):
+    def SGD(self, learningRate=0.5, decayFactor=0.95, numIters=5):
         #First, put all training words in the dictionary, if they aren't there
         for review in self.Data.trainData:
             text = review['text']
@@ -67,10 +73,9 @@ class NeuralNet:
                 if(not word in self.wordWeights):
                     self.wordWeights[word] = np.random.randn(1)*self.weight_scale
 
-        lr = learningRate
+        #print self.wordWeights
 
-        for key in self.model:
-            self.step[key] = 0
+        lr = learningRate
 
         for iter in range(0, numIters):
             print "Iteration: %d" %(iter)
@@ -83,11 +88,8 @@ class NeuralNet:
                     #print star, text
                     loss = self.predict(text, star) #Calculate gradients on example
                     for key in self.model:
-                        #Calculate step with momentum
-                        #self.step[key] = self.step[key]*momentum + (1-momentum)*self.grads[key]
-                        self.step[key] = self.grads[key]
                         #Update weights
-                        self.model[key] -= self.mult[key]*lr*self.step[key] + self.reg[key]*self.model[key]
+                        self.model[key] -= self.mult[key]*lr*self.grads[key]+ self.reg[key]*self.model[key]
                         #print self.grads[key]
                     for i in xrange(len(self.labelVec)):
                         #Update word weights
@@ -95,7 +97,11 @@ class NeuralNet:
                     sumLoss += loss
                     numValid += 1.0
             lr *= decayFactor
-            print "Mean loss: ", sumLoss/numValid, " Learning Rate: ", lr
+
+            print ("Mean loss: %.4f, Learning Rate: %.4f" %(sumLoss/numValid, lr)) 
+        print self.model
+        #print self.dx
+        #print self.wordWeights
 
     def test(self, verbose = False):
         predictions = []
@@ -257,66 +263,50 @@ class NeuralNet:
 
     def Pass(self, valMat, truth):
 
-        W1, b1, W2, b2 = self.model['weights1'], self.model['bias1'], self.model['weights2'], self.model['bias2']
-        #W1, b1 = self.model['weights1'], self.model['bias1']
+        W1, b1 = self.model['weights1'], self.model['bias1']
+        #W2, b2 = self.model['weights2'], self.model['bias2']
+        #W3, b3 = self.model['weights3'], self.model['bias3']
         N, C, H, W = valMat.shape
 
         #Forward Pass
-        #Set1 
-        #print "Forward Shapes"
-        #print "Input ", valMat.shape, valMat
-        x, cache1 = self.Conv_Forward(valMat, W1, b1)
-        #print self.model['weights1']
-        #print "conv ", a1.shape, a1
-        x, cache2 = self.ReLu_Forward(x)
-        #print "ReLu ", a2.shape, a2
-        x, cache3 = self.Max_Pool_Forward(x)
-        #print "pool ", a3.shape, a3
+        x = valMat
+        x, cache1 = self.Conv_Forward(x, W1, b1)
+        #x, cache2 = self.Max_Pool_Forward(x)
+        #x, cache3 = self.Conv_Forward(x, W2, b2)
+        #x, cache4 = self.Max_Pool_Forward(x)
+        #x, cache5 = self.Conv_Forward(x, W3, b3)
+        #x, cache6 = self.Max_Pool_Forward(x)
 
-        x, cache4 = self.Conv_Forward(x, W2, b2)
-        #print self.model['weights1']
-        #print "conv ", a1.shape, a1
-        x, cache5 = self.ReLu_Forward(x)
-        #print "ReLu ", a2.shape, a2
-        x, cache6 = self.Max_Pool_Forward(x)
-        #print "pool ", a3.shape, a3
 
         if(truth == None):
             return self.Mean(x)
 
         #Backward Pass
-        #print "Backward Shapes"
         loss, dout = self.Mean_Loss(x, truth)
         #print "after Loss ", c1.shape
         #print c1
 
-        dout = self.Max_Pool_Backward(dout, cache6)
-        #print "after depool ", c2.shape
-        #print c2
-        dout = self.ReLu_Backward(dout, cache5)
-        #print "after deRelu ", c3.shape
-        #print c3
-        dout,  dW2, db2 = self.Conv_Backward(dout, cache4)
-
-        dout = self.Max_Pool_Backward(dout, cache3)
-        #print "after depool ", c2.shape
-        #print c2
-        dout = self.ReLu_Backward(dout, cache2)
-        #print "after deRelu ", c3.shape
-        #print c3
+        #dout = self.Abs_Max_Pool_Backward(dout, cache6)
+        #dout,  dW3, db3 = self.Conv_Backward(dout, cache5)
+        #dout = self.Abs_Max_Pool_Backward(dout, cache4)
+        #dout,  dW2, db2 = self.Conv_Backward(dout, cache3)
+        #dout = self.Abs_Max_Pool_Backward(dout, cache2)
         dout,  dW1, db1 = self.Conv_Backward(dout, cache1)
-        #print "after deconv ", c4.shape
-        #print c4
+
 
         self.dx = dout
-        self.grads = {'weights1': dW1, 'bias1': db1, 'weights2': dW2, 'bias2': db2}
+        self.grads.update({'weights1': dW1, 'bias1': db1})
+        #self.grads.update({'weights2': dW2, 'bias2': db2})
+        #self.grads.update({'weights3': dW3, 'bias3': db3})
 
         return self.Mean_Loss(x, truth)[0]
 
     def Pass2(self, valMat, truth):
 
-        W1, b1, W2, b2 = self.model['weights1'], self.model['bias1'], self.model['weights2'], self.model['bias2']
-        #W1, b1 = self.model['weights1'], self.model['bias1']
+        #W1, b1, W2, b2 = self.model['weights1'], self.model['bias1'], self.model['weights2'], self.model['bias2']
+        W1, b1 = self.model['weights1'], self.model['bias1']
+        W2, b2 = self.model['weights2'], self.model['bias2']
+        W3, b3 = self.model['weights3'], self.model['bias3']
         N, C, H, W = valMat.shape
 
         #Forward Pass
@@ -391,14 +381,14 @@ class NeuralNet:
 
     def Mean_Loss(self, x, y):
         loss = 0.5*(self.Mean(x) - y)**2
-        #dx = x*0.0 + (self.Mean(x) - y)/(np.prod(x.shape))
-        dx = x*0.0 + (self.Mean(x) - y)/np.sum(np.where(x > 0))
+        dx = np.zeros(x.shape) + (self.Mean(x) - y)/(np.prod(x.shape))
+        #dx = x*0.0 + (self.Mean(x) - y)/(np.sum(np.where(x > 0))+ 0.1)
         #return loss, (dx*0 + 1)
         return loss, dx
 
     def Mean(self, x):
-        #return np.mean(x)
-        return np.sum(x)/np.sum(np.where(x > 0))
+        return np.mean(x)
+        #return np.sum(x)/(np.sum(np.where(x > 0))+ 0.1)
 
     def Conv_Forward(self, x, w, b):
         """
@@ -453,8 +443,8 @@ class NeuralNet:
         l = 0
         k = 0
 
-        dw = 0*w
-        dx = 0*x
+        dw = 0.0*w
+        dx = 0.0*x
         wmask = np.ones([H - HH + 1, W - WW + 1])
 
 
@@ -493,7 +483,7 @@ class NeuralNet:
         sth = self.pool_param['stride_h']
         stw = self.pool_param['stride_w']
         out = np.zeros((N,C,H/ph, W/pw))
-        mask = 0*x
+        mask = 0.0*x
 
         for i in xrange(N): #For each datapoint
             for j in xrange(C): #For each color
@@ -512,6 +502,78 @@ class NeuralNet:
         return out, cache
 
     def Max_Pool_Backward(self, dout, cache):
+        """
+        Inputs:
+        - dout: Upstream derivatives
+        - cache: A tuple of (x, pool_param) as in the forward pass.
+
+        Returns:
+        - dx: Gradient with respect to x
+        """
+        [N,C,H,W ] = dout.shape
+        mask = cache
+        [NN,CC,HH,WW] = mask.shape
+        ph = self.pool_param['pool_height']
+        pw = self.pool_param['pool_width']
+        sth = self.pool_param['stride_h']
+        stw = self.pool_param['stride_w']
+
+        dx = mask
+
+        for i in xrange(NN):
+            for j in xrange(CC):
+                n = 0
+                m = 0
+                for k in xrange(HH):
+                    for l in xrange(WW):
+                        if(mask[i,j,k,l] == 1):
+                            dx[i,j,k,l] = dout[i,j,m,n]
+                            n += 1
+                            if(n == W):
+                                n = 0
+                                m += 1
+        return dx
+
+    def Abs_Max_Pool_Forward(self, x):
+        """
+        Inputs:
+        - x: Input data, of shape (N, C, H, W)
+        - pool_param: dictionary with the following keys:
+        - 'pool_height': The height of each pooling region
+        - 'pool_width': The width of each pooling region
+        - 'stride': The distance between adjacent pooling regions
+
+        Returns a tuple of:
+        - out: Output data
+        - cache: (x, pool_param)
+        """
+        out = None
+
+        [N,C,H,W ] = x.shape
+        ph = self.pool_param['pool_height']
+        pw = self.pool_param['pool_width']
+        sth = self.pool_param['stride_h']
+        stw = self.pool_param['stride_w']
+        out = np.zeros((N,C,H/ph, W/pw))
+        mask = 0.0*x
+
+        for i in xrange(N): #For each datapoint
+            for j in xrange(C): #For each color
+                k = 0
+                while k < (out.shape[2]):
+                    l = 0
+                    while l < (out.shape[3]):
+                        temp = x[i,j,k*sth:k*sth + ph,l*stw:l*stw + pw]
+                        a = np.argmax(np.absolute(temp))
+                        b = np.unravel_index(a, temp.shape)
+                        out[i,j,k,l] = temp[b]
+                        mask[i,j,b[0]+k*sth,b[1]+l*stw] = 1
+                        l += 1
+                    k += 1
+        cache = mask
+        return out, cache
+
+    def Abs_Max_Pool_Backward(self, dout, cache):
         """
         Inputs:
         - dout: Upstream derivatives
