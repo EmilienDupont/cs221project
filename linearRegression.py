@@ -1,6 +1,7 @@
 from utility import *
-import heapq
 import math
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 class LinearRegression:
@@ -99,13 +100,14 @@ class LinearRegression:
                 self.weights[key] *= (1.0-50*eta)
 
 
-    def predictRating(self, review):
+    def predictRating(self, review, verbose=False):
         """
         Predicts a star rating from 1 to 5 given the |review| text
         """
         phi = self.featureExtractor(review['text'])
         phi[self.INTERCEPT] = 1
         prediction = dotProduct(phi, self.weights)
+        if verbose: print prediction
         if prediction <= 1:
             return 1
         elif prediction >= 5:
@@ -146,6 +148,22 @@ class LinearRegression:
         """
         return sum( 1.0 for review in self.Data.testData
                 if review['stars'] != round(self.predictRating(review)) )/self.Data.testLines
+
+    def plotPredictedRatingHistograms(self, numBins=25):
+        """
+        Plots a histogram of the distribution of the predicted ratings on the test set
+        """
+        predictedRatings = [[],[],[],[],[]]
+        # Fill out list of lists of predicted ratings. predictedRatings[0] contains
+        # all the true 1 star reviews etc...
+        for review in self.Data.testData:
+            predictedRatings[review['stars'] - 1].append(self.predictRating(review))
+        print "Plotting..."
+        for i in range(5):
+            plt.subplot(3,2,i+1)
+            plt.hist(np.array(predictedRatings[i]),numBins)
+        plt.show()
+        print "Done plotting!"
 
     def getInfo(self):
         """
