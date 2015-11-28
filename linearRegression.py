@@ -15,6 +15,10 @@ class LinearRegression:
         self.featureExtractor = featureExctractor
         self.weights = {}
         self.INTERCEPT = '-INTERCEPT-' # intercept token
+        self.allFeatures = []
+
+        # Extract all features
+        self.extractAllFeatures()
 
         # Learn the parameters when you instantiate the class
         self.learn()
@@ -24,26 +28,33 @@ class LinearRegression:
         Method to update feature extractor and learn.
         """
         self.featureExtractor = newFeatureExtractor
+        self.extractAllFeatures()
         self.learn()
 
-    def learn(self, verbose=False, numIters=10):
+    def extractAllFeatures(self):
+        """
+        Method to extract features of all the training data.
+        """
+        self.allFeatures = []
+        for review in self.Data.trainData:
+            text = review['text']
+            self.allFeatures.append(self.featureExtractor(text))
+        print "Extracted features!"
+
+
+    def learn(self, verbose=False, numIters=50, epsilon=0.1):
         """
         Learns a linear predictor based on the featureExtractor.
         Option to set learning rate |eta| and number of iterations
         |numIters|.
         """
-        # setting eta as a function of the number of training examples and number of itreations
-        # should prob be something more elaborate
-        eta = 5.0/float(self.numLines * numIters)
+        originalEta = 100.0/float(self.numLines * numIters)
         self.weights = {}
-
-        # Extract all the features before
-        AllFeatures = []
-        for review in self.Data.trainData:
-            text = review['text']
-            AllFeatures.append(self.featureExtractor(text))
+        oldObjective = self.getObjective()
 
         for t in range(numIters):
+
+            eta = originalEta/math.sqrt(t+1)
 
             if verbose:
                 print "Iteration:", t
@@ -51,10 +62,20 @@ class LinearRegression:
 
             for index, review in enumerate(self.Data.trainData):
                 star = review['stars']
-                phi = AllFeatures[index]
+                phi = self.allFeatures[index]
                 phi[self.INTERCEPT] = 1
                 updateCoefficient = dotProduct(self.weights, phi) - star
                 increment(self.weights, float(-eta*updateCoefficient), phi)
+
+            # Check for convergence
+            newObjective = self.getObjective()
+            difference = abs(oldObjective - newObjective)
+            print "Iteration: %s, difference: %s" % (t, difference)
+            if difference < epsilon:
+                print "Converged!"
+                break
+            oldObjective = newObjective
+
 
     def learnSlow(self, numIters=10, eta = 0.002, momentum=0.0, gamma=0.9):
         """
@@ -96,6 +117,14 @@ class LinearRegression:
                 #self.weights[key] /= weightSum
                 self.weights[key] *= (1.0-50*eta)
 
+    def getObjective(self):
+        """
+        Function to return current objective value.
+        """
+        objective = 0
+        for index, review in enumerate(self.Data.trainData):
+            objective += (review['stars'] - dotProduct(self.allFeatures[index], self.weights))**2
+        return objective/self.Data.numLines
 
     def predictRating(self, review, verbose=False):
         """
