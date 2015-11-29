@@ -1,3 +1,4 @@
+import re
 import string
 import sys
 import unicodedata
@@ -41,6 +42,28 @@ def wordFeatures(text):
             wordCount[wordStripped] = 1
     return wordCount
 
+smileyList = [':)', ':(', ':D', ':P', ":'(", '>: (']
+
+def wordFeaturesWithSmileys(text):
+    """
+    Takes into account smileys
+    """
+    wordCount = {}
+    for word in text.split():
+        for smiley in smileyList:
+            if word.find(smiley) >= 0:
+                if smiley in wordCount:
+                    wordCount[smiley] += 1
+                else:
+                    wordCount[smiley] = 1
+        # strip a string of punctuation marks
+        wordStripped = removePunctuation(word)
+        if wordStripped in wordCount:
+            wordCount[wordStripped] += 1
+        else:
+            wordCount[wordStripped] = 1
+    return wordCount
+
 def wordFeaturesNoCommonWords(commonWords):
     """
     Returns a word feature extractor that doesn't take into account the most common words
@@ -68,6 +91,37 @@ def wordFeaturesNoCommonWords(commonWords):
                     wordCount[wordStripped] = 1
         return wordCount
     return extractor
+
+negation_patterns = "(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasn\'t|hadn\'t|can\'t|couldn\'t|shouldn\'t|" + \
+                    "won\'t|wouldn\'t|don\'t|doesn\'t|didn\'t|isn\'t|aren\'t|ain\'t)$)|n't"
+
+def neg_match(s):
+    return re.match(negation_patterns, s, flags=re.U)
+
+punct_patterns = "[.:;!?]"
+
+def punct_mark(s):
+    return re.search(punct_patterns, s, flags=re.U)
+
+def wordFeaturesWithNegation(text):
+    wordCount = {}
+    prevNeg = False
+    for word in text.split():
+        if not prevNeg:
+            prevNeg = (neg_match(word) != None)
+            if word in wordCount:
+                wordCount[word] += 1
+            else:
+                wordCount[word] = 1
+        else:
+            negWord = word + "_NEG"
+            if negWord in wordCount:
+                wordCount[negWord] += 1
+            else:
+                wordCount[negWord] = 1
+        if punct_mark(word):
+            prevNeg = False
+    return wordCount
 
 def stemFunction(leafWords):
     """
