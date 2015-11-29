@@ -103,25 +103,43 @@ punct_patterns = "[.:;!?]"
 def punct_mark(s):
     return re.search(punct_patterns, s, flags=re.U)
 
-def wordFeaturesWithNegation(text):
-    wordCount = {}
-    prevNeg = False
-    for word in text.split():
-        if not prevNeg:
-            prevNeg = (neg_match(word) != None)
-            if word in wordCount:
-                wordCount[word] += 1
+def wordFeaturesWithNegation(commonWords, leafWords):
+    """
+    Word feature extractor that tries to take into account the effects of negation and clause-level punctuation
+    marks and tokenizes the appropriate negated words. Does not use them if they happen to be common words, and
+    considers only stemmed words
+    """
+    def stem(word):
+        for leaf in leafWords:
+            if word[-len(leaf):] == leaf:
+                return word[:-len(leaf)]
             else:
-                wordCount[word] = 1
-        else:
-            negWord = word + "_NEG"
-            if negWord in wordCount:
-                wordCount[negWord] += 1
+                return word
+    
+    def extractor(text):
+        wordCount = {}
+        prevNeg = False
+        for word in text.split():
+            wordStripped = stem(removePunctuation(word))
+            if not prevNeg:
+                prevNeg = (neg_match(word) != None)
+                if not wordStripped in commonWords:
+                    if wordStripped in wordCount:
+                        wordCount[wordStripped] += 1
+                    else:
+                        wordCount[wordStripped] = 1
             else:
-                wordCount[negWord] = 1
-        if punct_mark(word):
-            prevNeg = False
-    return wordCount
+                if not wordStripped in commonWords:
+                    negWord = wordStripped + "_NEG"
+                    if negWord in wordCount:
+                        wordCount[negWord] += 1
+                    else:
+                        wordCount[negWord] = 1
+            if punct_mark(word):
+                prevNeg = False
+        return wordCount
+    
+    return extractor
 
 def stemFunction(leafWords):
     """
