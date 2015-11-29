@@ -9,10 +9,10 @@ class LinearRegression:
     Class to perform linear regression
     """
 
-    def __init__(self, Data, featureExctractor):
+    def __init__(self, Data, featureExtractor):
         self.Data = Data
         self.numLines = Data.numLines
-        self.featureExtractor = featureExctractor
+        self.featureExtractor = featureExtractor
         self.weights = {}
         self.INTERCEPT = '-INTERCEPT-' # intercept token
         self.allFeatures = []
