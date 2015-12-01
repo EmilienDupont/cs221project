@@ -1,3 +1,4 @@
+import random
 import re
 import string
 import sys
@@ -6,6 +7,61 @@ import unicodedata
 # table to store unicode punctuation characters
 tbl = dict.fromkeys(i for i in xrange(sys.maxunicode)
                       if unicodedata.category(unichr(i)).startswith('P'))
+
+def readLexicon(inputFile):
+    """
+    Reads in the lexicon file pointed to by |inputFile| and returns a dictionary
+    of words: if the word is positive its value is 1, if it is negative its value
+    is 0. For example:
+    {Good: 1, Excellent: 1, Terrible: 0}
+    This is based on the NRC Emotion Lexicon v0.92
+    """
+    f = open(inputFile)
+    lexicon = {}
+    lineCount = 0
+
+    print "Creating Lexicon..."
+
+    # Note that format of file is:
+    # word, emotion, true/false
+    # There are 10 emotions for each word
+
+    for line in f:
+        lineCount += 1
+        # 6th line corresponds to negative
+        if lineCount % 10 == 6:
+            word, emotion, boolean = line.split()
+            if int(boolean):
+                lexicon[word] = 0
+        # 7th line corresponds to positive
+        elif lineCount % 10 == 7:
+            word, emotion, boolean = line.split()
+            if int(boolean):
+                lexicon[word] = 1
+    f.close()
+
+    print "Created lexicon!"
+
+    return lexicon
+
+def positiveNegativeCounts(lexicon):
+    """
+    Returns funciton that returns a two dimensional feature vector:
+    -Count of positive words (based on lexicon)
+    -Count of negative words (based on lexicon)
+    """
+    def extractor(text):
+        featureVector = {'-POSITIVE-': 0, '-NEGATIVE-': 0}
+        for word in text.split():
+            if word in lexicon:
+                if lexicon[word]:
+                    featureVector['-POSITIVE-'] += 1
+                else:
+                    featureVector['-NEGATIVE-'] += 1
+        return featureVector
+
+    return extractor
+
 
 def removePunctuation(text):
     """
@@ -24,7 +80,7 @@ def readCommonWords(inputFile):
         word = line.strip()
         commonWords.add(word)
     f.close()
-    
+
     return commonWords
 
 def wordFeatures(text):
@@ -40,6 +96,21 @@ def wordFeatures(text):
             wordCount[wordStripped] += 1
         else:
             wordCount[wordStripped] = 1
+    return wordCount
+
+def notManyFeatures(text):
+    """
+    Function to return the word count in a string as a dict (with some probability)
+    """
+    wordCount = {}
+    for word in text.split():
+        if random.random() > .9:
+            # strip a string of punctuation marks
+            wordStripped = removePunctuation(word)
+            if wordStripped in wordCount:
+                wordCount[wordStripped] += 1
+            else:
+                wordCount[wordStripped] = 1
     return wordCount
 
 smileyList = [':)', ':(', ':D', ':P', ":'(", '>: (']
@@ -115,7 +186,7 @@ def wordFeaturesWithNegation(commonWords, leafWords):
                 return word[:-len(leaf)]
             else:
                 return word
-    
+
     def extractor(text):
         wordCount = {}
         prevNeg = False
@@ -138,7 +209,7 @@ def wordFeaturesWithNegation(commonWords, leafWords):
             if punct_mark(word):
                 prevNeg = False
         return wordCount
-    
+
     return extractor
 
 def stemFunction(leafWords):

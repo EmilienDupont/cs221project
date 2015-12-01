@@ -34,6 +34,10 @@ class Data:
         self.featuresToIndex = {}
         self.numFeatures = 0
 
+        # For TensorFlow only, require one hot label vectors
+        self.trainLabelOneHot = np.array([])
+        self.testLabelOneHot = np.array([])
+
     def shuffle(self):
         """
         Method to shuffle train and test data
@@ -137,3 +141,24 @@ class Data:
                 entriesTest.append(review[feature])
 
         self.testArray = scipy.sparse.coo_matrix((entriesTest, (rowTest, colTest)), (self.testLines, self.numFeatures), dtype = np.float)
+
+    def convertLabelsToOneHot(self):
+        """
+        Instead of having the labels as [1,3,4,2,5], we want to store this as a sparse
+        array of one hot vectors, i.e. [[1,0,0,0,0], [0,0,1,0,0], etc...]
+        """
+        # Format is (entries, (rows, columns)), (numRows, numCols)
+
+        # Test set
+        entries = np.ones(self.testLines)
+        rows = np.subtract(self.testLabelArray.tolist(), np.ones(self.testLines)) # Convert to 0 based indexing
+        columns = range(self.testLines)
+        self.testLabelOneHot = scipy.sparse.coo_matrix((entries, (rows, columns)),
+                                                       (5, self.testLines), dtype = np.int)
+
+        # Training set
+        entries = np.ones(self.numLines)
+        rows = np.subtract(self.trainLabelArray.tolist(), np.ones(self.numLines)) # Convert to 0 based indexing
+        columns = range(self.numLines)
+        self.trainLabelOneHot = scipy.sparse.coo_matrix((entries, (rows, columns)),
+                                                        (5, self.numLines), dtype = np.int)

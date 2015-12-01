@@ -197,7 +197,7 @@ class LinearRegression:
         """
         print "Using %s training reviews and %s test reviews" % (self.Data.numLines, self.Data.testLines)
         print "Number of features: %s" % len(self.weights)
-        print "Highest weighted features:", max( (abs(self.weights[word]), word) for word in self.weights \
+        print "Highest weighted features:", max( (self.weights[word], word) for word in self.weights \
                                                 if word != self.INTERCEPT)
         print "Training RMSE: %s" % self.getTrainingRMSE()
         print "Training Misclassification: %s" % self.getTrainingMisClass()
