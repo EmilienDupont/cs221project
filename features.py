@@ -44,6 +44,49 @@ def readLexicon(inputFile):
 
     return lexicon
 
+def readFullLexicon(inputFile):
+    """
+    Reads in the lexicon file pointed to by |inputFile| and returns a dictionary
+    of words: the key is the word and the value is a list of numbers corresponding to
+    various emotions.
+    0 anger
+    1 anticipation
+    2 disgust
+    3 fear
+    4 joy
+    5 negative
+    6 positive
+    7 sadness
+    8 surprise
+    9 trust
+    {Good: [4,6], Excellent: [6], Terrible: [2,5]}
+    This is based on the NRC Emotion Lexicon v0.92
+    """
+    f = open(inputFile)
+    lexicon = {}
+    lineCount = 0
+
+    print "Creating Full Lexicon..."
+
+    # Note that format of file is:
+    # word, emotion, true/false
+    # There are 10 emotions for each word
+
+    for line in f:
+        word, emotion, boolean = line.split()
+        if int(boolean):
+            if word not in lexicon:
+                lexicon[word] = [lineCount % 10]
+            else:
+                lexicon[word].append(lineCount % 10)
+        lineCount += 1
+    f.close()
+
+    print "Created full lexicon!"
+
+    return lexicon
+
+
 def positiveNegativeCounts(lexicon):
     """
     Returns funciton that returns a two dimensional feature vector:
@@ -58,6 +101,27 @@ def positiveNegativeCounts(lexicon):
                     featureVector['-POSITIVE-'] += 1
                 else:
                     featureVector['-NEGATIVE-'] += 1
+        return featureVector
+
+    return extractor
+
+def emotionCounts(lexicon):
+    """
+    Returns funciton that returns a 10 dimensional feature vector which
+    contains the counts of various emotions
+    """
+    numberToToken = {0: '-ANGER-', 1: '-ANTICIPATION-', 2: '-DISGUST-', 3: '-FEAR-',
+                     4: '-JOY-', 5: '-NEGATIVE-', 6: '-POSITIVE-', 7: '-SADNESS-',
+                     8: '-SURPRISE-', 9 : '-TRUST-'}
+
+    def extractor(text):
+        featureVector = {'-ANGER-': 0, '-ANTICIPATION-': 0, '-DISGUST-': 0,
+                         '-FEAR-': 0, '-JOY-': 0, '-NEGATIVE-': 0, '-POSITIVE-': 0,
+                         '-SADNESS-': 0, '-SURPRISE-': 0, '-TRUST-': 0}
+        for word in text.split():
+            if word in lexicon:
+                for number in lexicon[word]:
+                    featureVector[numberToToken[number]] += 1
         return featureVector
 
     return extractor
