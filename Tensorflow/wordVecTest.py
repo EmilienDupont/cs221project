@@ -28,6 +28,7 @@ for review in reviews.trainData:
 
 		vocab.append(word.encode("utf-8"))
 
-embeddings = encodeWords(vocab, 1000, 128, 1)
+final_embeddings, reverse_dictionary = encodeWords(vocab, 1000, 128, 1)
 
-#print tf.nn.embedding_lookup(embeddings, ['if', 'then'])
+print final_embeddings
+print reverse_dictionary
