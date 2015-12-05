@@ -107,5 +107,8 @@ def encodeWords(vocab, vocabulary_size, embedding_size, num_steps):
             log_str = "%s %s," % (log_str, close_word)
           print(log_str)
     final_embeddings = normalized_embeddings.eval()
-    #print final_embeddings
-    return final_embeddings
+    print final_embeddings
+    print reverse_dictionary
+
+
+    return final_embeddings, reverse_dictionary
