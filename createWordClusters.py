@@ -6,7 +6,7 @@ class ClusterWords():
         self.kmeans = KMeans(numClusters)
         self.numClusters = numClusters
         self.embeddings = embeddings
-        self.dictionary = dictionary
+        self.reverseDictionary = { value: key for key, value in dictionary.items() }
         self.createClusters()
         self.wordToCluster = {}
 
@@ -38,7 +38,7 @@ class ClusterWords():
         self.wordToCluster = {}
         clusterLists = self.getClusters(self.embeddings)
         for i, cluster in enumerate(clusterLists):
-            word = self.dictionary[i]
+            word = self.reverseDictionary[i]
             self.wordToCluster[word] = cluster
         return self.wordToCluster
 

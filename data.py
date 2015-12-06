@@ -81,6 +81,8 @@ class Data:
         Columns: features
         Stored as a sparse COO Matrix
         """
+        print "Converting data to array..."
+
         self.featuresToIndex = {} # Links feature to index in numpy array
                                   # For example {"hello" : 0, "world" : 1}
         featureIndex = 0
@@ -141,6 +143,8 @@ class Data:
                 entriesTest.append(review[feature])
 
         self.testArray = scipy.sparse.coo_matrix((entriesTest, (rowTest, colTest)), (self.testLines, self.numFeatures), dtype = np.float)
+
+        print "Done converting data to array!"
 
     def convertLabelsToOneHot(self):
         """

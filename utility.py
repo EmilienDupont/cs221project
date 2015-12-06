@@ -6,6 +6,7 @@ def loadData(filename, numLinesData, numLinesTest):
     if not os.path.isfile(filename):
             raise RuntimeError, "The file '%s' does not exist" % filename
 
+    print "Loading Data..."
     trainData = []
     testData = []
     lineNum = 0
@@ -21,6 +22,7 @@ def loadData(filename, numLinesData, numLinesTest):
             else:
                 break
 
+    print "Done Loading Data!"
     return (trainData, testData)
 
 def dotProduct(d1, d2):
