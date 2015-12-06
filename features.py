@@ -233,7 +233,7 @@ negation_patterns = "(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasn\
 def neg_match(s):
     return re.match(negation_patterns, s, flags=re.U)
 
-punct_patterns = "[.:;!?]"
+punct_patterns = "[.:;,!?]"
 
 def punct_mark(s):
     return re.search(punct_patterns, s, flags=re.U)
