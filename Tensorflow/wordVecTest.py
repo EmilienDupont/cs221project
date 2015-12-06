@@ -18,50 +18,58 @@ if len(sys.argv) < 2:
 
 inputFile = sys.argv[1]
 
-# Import Data
-reviews = Data(inputFile, numLines = 1000, testLines = 1000)
-reviews.shuffle()
 
-vocab = []
-
-for review in reviews.trainData:
-	for word in review['text'].split():
-
-		vocab.append(word.encode("utf-8"))
-
-final_embeddings, reverse_dictionary = encodeWords(vocab, 1000, 128, 1)
-
-print final_embeddings
-print reverse_dictionary
 
 def wordsWithNegation(leafWords):
   def stem(word):
     for leaf in leafWords:
       if word[-len(leaf):] == leaf:
-	return word[:-len(leaf)]
+        return word[:-len(leaf)]
       else:
-	return word
+        return word
       
   def extractor(text):
     processedWords = []
     prevNeg = False
     for word in text.split():
-      wordStripped = stem(removePunctuation(word))
+      wordStripped = stem(removePunctuation(word.lower()))
       if not prevNeg:
-	prevNeg = (neg_match(word) != None)
-	processedWords.append(wordStripped)
+        prevNeg = (neg_match(word) != None)
+        processedWords.append(wordStripped)
       else:
-	negWord = wordStripped + "_NEG"
-	processedWords.append(negWord)
+        negWord = wordStripped + "_NEG"
+        processedWords.append(negWord)
       if punct_mark(word):
-	prevNeg = False
+        prevNeg = False
     return processedWords
   
   return extractor
 
-# dummy test
-test = unicode("I was not pleased with the service, but i was pleased with the food.")
-yolo = wordsWithNegation(['s','es','ed','er','ly','ing'])
-swag = yolo(test)
+preprocess = wordsWithNegation(['s','es','ed','er','ly','ing'])
 
-print swag
+
+# Import Data
+reviews = Data(inputFile, numLines = 10000, testLines = 1000)
+reviews.shuffle()
+
+vocab = []
+
+for review in reviews.trainData:
+  # for text in review['text']:
+  temp = preprocess(review['text'])
+  vocab.extend(temp)
+    #word.encode("utf-8")
+
+final_embeddings, reverse_dictionary = encodeWords(vocab, 5000, 128, 50000)
+
+print final_embeddings
+print reverse_dictionary
+
+
+
+# # dummy test
+# test = unicode("I was not pleased with the service, but i was pleased with the food.")
+# yolo = wordsWithNegation(['s','es','ed','er','ly','ing'])
+# swag = yolo(test)
+
+# print swag
