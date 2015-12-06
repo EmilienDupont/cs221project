@@ -1,12 +1,41 @@
+import pickle
 import random
 import re
 import string
 import sys
 import unicodedata
+import createWordClusters
 
 # table to store unicode punctuation characters
 tbl = dict.fromkeys(i for i in xrange(sys.maxunicode)
                       if unicodedata.category(unichr(i)).startswith('P'))
+
+def clusterFeatures(embeddingsFile, dictionaryFile, numClusters=100):
+    """
+    Returns a feature extractor which using the skip gram embeddings clusters
+    various words using k-means returns the review as a dictionary where
+    key: cluster, value: number of words belonging to that cluster
+    """
+    # Load the pickle files
+    embeddings = pickle.load( open( embeddingsFile, "rb" ) )
+    dictionary = pickle.load( open( dictionaryFile, "rb" ) )
+    # Create a cluster object and return a dictionary mapping words to clusters
+    cluster = createWordClusters.ClusterWords(embeddings, dictionary, numClusters)
+    wordToCluster = cluster.getWordToCluster()
+
+    def extractor(text):
+        featureVector = {}
+        for word in text.split():
+            if word in wordToCluster:
+                cluster = wordToCluster[word]
+                if cluster in featureVector:
+                    featureVector[cluster] += 1
+                else:
+                    featureVector[cluster] = 1
+        return featureVector
+
+    return extractor
+
 
 def readLexicon(inputFile):
     """
