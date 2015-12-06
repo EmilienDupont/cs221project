@@ -20,6 +20,7 @@ import math
 import numpy as np
 import os
 import random
+import matplotlib.pyplot as plt
 from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf

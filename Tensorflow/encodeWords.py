@@ -107,8 +107,22 @@ def encodeWords(vocab, vocabulary_size, embedding_size, num_steps):
             log_str = "%s %s," % (log_str, close_word)
           print(log_str)
     final_embeddings = normalized_embeddings.eval()
-    print final_embeddings
-    print reverse_dictionary
+    #print final_embeddings
+    #print reverse_dictionary
 
 
-    return final_embeddings, reverse_dictionary
+    try:
+      from sklearn.manifold import TSNE
+      import matplotlib.pyplot as plt
+      tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
+      plot_only = 500
+      low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only,:])
+      labels = [reverse_dictionary[i] for i in xrange(plot_only)]
+      plot_with_labels(low_dim_embs, labels)
+
+      
+
+    except ImportError:
+      print("Please install sklearn and matplotlib to visualize embeddings.")
+
+    return final_embeddings, dictionary
