@@ -1,3 +1,18 @@
+# Copyright 2015 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
 def encodeWords(vocab, vocabulary_size, embedding_size, num_steps):
   #vocabulary_size = 5000
 
@@ -35,7 +50,7 @@ def encodeWords(vocab, vocabulary_size, embedding_size, num_steps):
 
   def device_for_node(n):
     #print n.type
-
+    #Google exaggerated tensorflows flexibility so we can't run all this on a gpu
     if n.type == "MatMul":
       return "/cpu:0"
     elif n.type == "LogUniformCandidateSampler":
@@ -120,7 +135,7 @@ def encodeWords(vocab, vocabulary_size, embedding_size, num_steps):
       labels = [reverse_dictionary[i] for i in xrange(plot_only)]
       plot_with_labels(low_dim_embs, labels)
 
-      
+
 
     except ImportError:
       print("Please install sklearn and matplotlib to visualize embeddings.")
