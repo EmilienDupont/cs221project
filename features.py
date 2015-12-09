@@ -116,12 +116,13 @@ def readFullLexicon(inputFile):
     return lexicon
 
 
-def positiveNegativeCounts(lexicon):
+def positiveNegativeCounts(inputFile):
     """
     Returns funciton that returns a two dimensional feature vector:
     -Count of positive words (based on lexicon)
     -Count of negative words (based on lexicon)
     """
+    lexicon = readLexicon(inputFile)
     def extractor(text):
         featureVector = {'-POSITIVE-': 0, '-NEGATIVE-': 0}
         for word in text.split():
@@ -134,7 +135,7 @@ def positiveNegativeCounts(lexicon):
 
     return extractor
 
-def emotionCounts(lexicon):
+def emotionCounts(inputFile):
     """
     Returns funciton that returns a 10 dimensional feature vector which
     contains the counts of various emotions
@@ -142,6 +143,8 @@ def emotionCounts(lexicon):
     numberToToken = {0: '-ANGER-', 1: '-ANTICIPATION-', 2: '-DISGUST-', 3: '-FEAR-',
                      4: '-JOY-', 5: '-NEGATIVE-', 6: '-POSITIVE-', 7: '-SADNESS-',
                      8: '-SURPRISE-', 9 : '-TRUST-'}
+
+    lexicon = readFullLexicon(inputFile)
 
     def extractor(text):
         featureVector = {'-ANGER-': 0, '-ANTICIPATION-': 0, '-DISGUST-': 0,
