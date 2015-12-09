@@ -33,6 +33,7 @@ class Data:
         self.testLabelArray = np.array([])
         self.featuresToIndex = {}
         self.numFeatures = 0
+        self.AllFeatures = None
 
         # For TensorFlow only, require one hot label vectors
         self.trainLabelOneHot = np.array([])
@@ -144,6 +145,8 @@ class Data:
 
         self.testArray = scipy.sparse.coo_matrix((entriesTest, (rowTest, colTest)), (self.testLines, self.numFeatures), dtype = np.float)
 
+        self.AllFeatures = AllFeatures
+
         print "Done converting data to array!"
 
     def convertLabelsToOneHot(self):
@@ -166,3 +169,9 @@ class Data:
         columns = range(self.numLines)
         self.trainLabelOneHot = scipy.sparse.coo_matrix((entries, (rows, columns)),
                                                         (5, self.numLines), dtype = np.int)
+
+    def getFeatureVecExample(self, numExample):
+        """
+        Returns a feature vector, used to debug.
+        """
+        return self.AllFeatures[numExample]

@@ -10,6 +10,40 @@ import createWordClusters
 tbl = dict.fromkeys(i for i in xrange(sys.maxunicode)
                       if unicodedata.category(unichr(i)).startswith('P'))
 
+def posNegClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numClusters=100):
+    """
+    Returns a feature extractor which clusters words and then classifies them into
+    positive and negative clusters. E.g. {Cluster1_NEG: 3, Cluster17_POS: 1} etc...
+    """
+    # Load the pickle files
+    embeddings = pickle.load( open( embeddingsFile, "rb" ) )
+    dictionary = pickle.load( open( dictionaryFile, "rb" ) )
+    # Create a cluster object and return a dictionary mapping words to clusters
+    cluster = createWordClusters.ClusterWords(embeddings, dictionary, numClusters)
+    wordToCluster = cluster.getWordToCluster()
+
+    # Read in the lexicon
+    lexicon = readLexicon(lexiconFile)
+
+    def extractor(text):
+        featureVector = {}
+        for word in text.split():
+            if word in wordToCluster and word in lexicon:
+                cluster = wordToCluster[word]
+                polarity = int(lexicon[word]) # if 1 => positive, if 0 => negative
+                if polarity:
+                    featureName = "Cluster" + str(cluster) + "_POS"
+                else:
+                    featureName = "Cluster" + str(cluster) + "_NEG"
+
+                if featureName in featureVector:
+                    featureVector[featureName] += 1
+                else:
+                    featureVector[featureName] = 1
+        return featureVector
+
+    return extractor
+
 def clusterFeatures(embeddingsFile, dictionaryFile, numClusters=100):
     """
     Returns a feature extractor which using the skip gram embeddings clusters
