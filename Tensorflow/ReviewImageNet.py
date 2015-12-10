@@ -76,6 +76,8 @@ sess = tf.InteractiveSession()
 
 x = tf.placeholder("float", shape=[None, 64, 64])
 y_ = tf.placeholder("float", shape=[None, 5])
+print len(allTrainingData[0]), "Training"
+print len(allTestData[0]), "Test"
 
 sess.run(tf.initialize_all_variables())
 
@@ -164,10 +166,19 @@ for i in range(10000):
 right = 0 
 total = 0
 
+for i in xrange(len(allTrainData[0])):
+  acc = accuracy.eval(feed_dict={x: allTestData[0][i:i+1], y_: allTestData[1][i:i+1], keep_prob: 1.0})
+  right += acc
+  total += 1
+  i += 1
+print "Train Accuracy: ", float(right)/float(total)
+
+right = 0 
+total = 0
+
 for i in xrange(len(allTestData[0])):
   acc = accuracy.eval(feed_dict={x: allTestData[0][i:i+1], y_: allTestData[1][i:i+1], keep_prob: 1.0})
   right += acc
   total += 1
   i += 1
-print "Accuracy: ", float(right)/float(total)
-#print allTestData[0].shape
+print "Test Accuracy: ", float(right)/float(total)
