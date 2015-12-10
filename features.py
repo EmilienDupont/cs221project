@@ -10,6 +10,19 @@ import createWordClusters
 tbl = dict.fromkeys(i for i in xrange(sys.maxunicode)
                       if unicodedata.category(unichr(i)).startswith('P'))
 
+# intermediate things to be used later in clause-level negation
+negation_patterns = "(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasn\'t|hadn\'t|can\'t|couldn\'t|shouldn\'t|" + \
+                    "won\'t|wouldn\'t|don\'t|doesn\'t|didn\'t|isn\'t|aren\'t|ain\'t)$)|n't"
+
+def neg_match(s):
+    return re.match(negation_patterns, s, flags=re.U)
+
+punct_patterns = "[.:;,!?]"
+
+def punct_mark(s):
+    return re.search(punct_patterns, s, flags=re.U)
+
+
 def posNegClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numClusters=100):
     """
     Returns a feature extractor which clusters words and then classifies them into
@@ -43,6 +56,52 @@ def posNegClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
         return featureVector
 
     return extractor
+
+def clauseClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numClusters=100):
+    """
+    Returns a feature extractor which clusters words and then classifies them into
+    positive and negative clusters. E.g. {Cluster1_NEG: 3, Cluster17_POS: 1} , and also takes
+    into account clause-level negation
+    """
+    # Load the pickle files
+    embeddings = pickle.load( open( embeddingsFile, "rb" ) )
+    dictionary = pickle.load( open( dictionaryFile, "rb" ) )
+    # Create a cluster object and return a dictionary mapping words to clusters
+    cluster = createWordClusters.ClusterWords(embeddings, dictionary, numClusters)
+    wordToCluster = cluster.getWordToCluster()
+
+    # Read in the lexicon
+    lexicon = readLexicon(lexiconFile)
+
+    def extractor(text):
+        featureVector = {}
+        prevNeg = False
+        for word in text.split():
+            if word in wordToCluster and word in lexicon:
+                cluster = wordToCluster[word]
+                polarity = int(lexicon[word]) # if 1 => positive, if 0 => negative
+                if not prevNeg:
+                    prevNeg = (neg_match(word) != None)
+                    if polarity:
+                        featureName = "Cluster" + str(cluster) + "_POS"
+                    else:
+                        featureName = "Cluster" + str(cluster) + "_NEG"
+                    if featureName in featureVector:
+                        featureVector[featureName] += 1
+                    else:
+                        featureVector[featureName] = 1
+                else:
+                    if polarity:
+                        featureName = "Cluster" + str(cluster) + "_NEG"
+                    else:
+                        featureName = "Cluster" + str(cluster) + "_POS"
+                    if featureName in featureVector:
+                        featureVector[featureName] += 1
+                    else:
+                        featureVector[featureName] = 1
+        return featureVector
+
+    return extractor    
 
 def clusterFeatures(embeddingsFile, dictionaryFile, numClusters=100):
     """
@@ -197,7 +256,7 @@ def removePunctuation(text):
     """
     Function that removes the punctuation from a unicode formatted input string
     """
-    return text.translate(tbl)
+    return text.translate(tbl).lower()
 
 def readCommonWords(inputFile):
     """
@@ -292,17 +351,6 @@ def wordFeaturesNoCommonWords(commonWords):
                     wordCount[wordStripped] = 1
         return wordCount
     return extractor
-
-negation_patterns = "(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasn\'t|hadn\'t|can\'t|couldn\'t|shouldn\'t|" + \
-                    "won\'t|wouldn\'t|don\'t|doesn\'t|didn\'t|isn\'t|aren\'t|ain\'t)$)|n't"
-
-def neg_match(s):
-    return re.match(negation_patterns, s, flags=re.U)
-
-punct_patterns = "[.:;,!?]"
-
-def punct_mark(s):
-    return re.search(punct_patterns, s, flags=re.U)
 
 def wordFeaturesWithNegation(commonWords, leafWords):
     """
