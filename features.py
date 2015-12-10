@@ -99,6 +99,8 @@ def clauseClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
                         featureVector[featureName] += 1
                     else:
                         featureVector[featureName] = 1
+            if punct_mark(word):
+                prevNeg = False
         return featureVector
 
     return extractor    
@@ -256,7 +258,7 @@ def removePunctuation(text):
     """
     Function that removes the punctuation from a unicode formatted input string
     """
-    return text.translate(tbl).lower()
+    return text.translate(tbl).lower()1
 
 def readCommonWords(inputFile):
     """
