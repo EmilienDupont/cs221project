@@ -40,7 +40,8 @@ def posNegClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
 
     def extractor(text):
         featureVector = {}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in wordToCluster and word in lexicon:
                 cluster = wordToCluster[word]
                 polarity = int(lexicon[word]) # if 1 => positive, if 0 => negative
@@ -76,7 +77,8 @@ def clauseClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
     def extractor(text):
         featureVector = {}
         prevNeg = False
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in wordToCluster and word in lexicon:
                 cluster = wordToCluster[word]
                 polarity = int(lexicon[word]) # if 1 => positive, if 0 => negative
@@ -103,7 +105,7 @@ def clauseClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
                 prevNeg = False
         return featureVector
 
-    return extractor    
+    return extractor
 
 def clusterFeatures(embeddingsFile, dictionaryFile, numClusters=100):
     """
@@ -120,7 +122,8 @@ def clusterFeatures(embeddingsFile, dictionaryFile, numClusters=100):
 
     def extractor(text):
         featureVector = {}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in wordToCluster:
                 cluster = wordToCluster[word]
                 if cluster in featureVector:
@@ -220,7 +223,8 @@ def positiveNegativeCounts(inputFile):
     lexicon = readLexicon(inputFile)
     def extractor(text):
         featureVector = {'-POSITIVE-': 0, '-NEGATIVE-': 0}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in lexicon:
                 if lexicon[word]:
                     featureVector['-POSITIVE-'] += 1
@@ -245,7 +249,8 @@ def emotionCounts(inputFile):
         featureVector = {'-ANGER-': 0, '-ANTICIPATION-': 0, '-DISGUST-': 0,
                          '-FEAR-': 0, '-JOY-': 0, '-NEGATIVE-': 0, '-POSITIVE-': 0,
                          '-SADNESS-': 0, '-SURPRISE-': 0, '-TRUST-': 0}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in lexicon:
                 for number in lexicon[word]:
                     featureVector[numberToToken[number]] += 1
