@@ -258,7 +258,7 @@ def removePunctuation(text):
     """
     Function that removes the punctuation from a unicode formatted input string
     """
-    return text.translate(tbl).lower()1
+    return text.translate(tbl).lower()
 
 def readCommonWords(inputFile):
     """
