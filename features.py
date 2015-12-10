@@ -235,6 +235,37 @@ def positiveNegativeCounts(inputFile):
 
     return extractor
 
+def positiveNegativeCountsWithClause(inputFile):
+    """
+    Returns funciton that returns a two dimensional feature vector:
+    -Count of positive words (based on lexicon)
+    -Count of negative words (based on lexicon)
+    """
+    lexicon = readLexicon(inputFile)
+    def extractor(text):
+        prevNeg = False
+        featureVector = {'-POSITIVE-': 0, '-NEGATIVE-': 0}
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
+            if not prevNeg:
+                prevNeg = (neg_match(word) != None)
+            if word in lexicon:
+                if (not prevNeg):
+                    if lexicon[word]:
+                        featureVector['-POSITIVE-'] += 1
+                    else:
+                        featureVector['-NEGATIVE-'] += 1
+                else:
+                    if lexicon[word]:
+                        featureVector['-NEGATIVE-'] += 1
+                    else:
+                        featureVector['-POSITIVE-'] += 1
+            if punct_mark(rawWord):
+                prevNeg = False
+        return featureVector
+
+    return extractor
+
 def emotionCounts(inputFile):
     """
     Returns funciton that returns a 10 dimensional feature vector which
