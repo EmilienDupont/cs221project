@@ -79,11 +79,12 @@ def clauseClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
         prevNeg = False
         for rawWord in text.split():
             word = removePunctuation(rawWord)
+            if not prevNeg:
+                prevNeg = (neg_match(word) != None)
             if word in wordToCluster and word in lexicon:
                 cluster = wordToCluster[word]
                 polarity = int(lexicon[word]) # if 1 => positive, if 0 => negative
                 if not prevNeg:
-                    prevNeg = (neg_match(word) != None)
                     if polarity:
                         featureName = "Cluster" + str(cluster) + "_POS"
                     else:
@@ -101,7 +102,7 @@ def clauseClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
                         featureVector[featureName] += 1
                     else:
                         featureVector[featureName] = 1
-            if punct_mark(word):
+            if punct_mark(rawWord):
                 prevNeg = False
         return featureVector
 
@@ -434,18 +435,3 @@ def stemmedWordFeatures(leafWords):
         return wordCount
 
     return stemmedWordCount
-
-def nGramFeatures(n):
-    """
-    Returns a function that returns "n-gram" features from a string
-    """
-    def nGramFunction(text):
-        featureVec = {}
-        string = text.replace(" ","")
-        for i in range(len(string)-(n-1)):
-            if string[i:i+n] in featureVec:
-                featureVec[string[i:i+n]] += 1
-            else:
-                featureVec[string[i:i+n]] = 1
-        return featureVec
-    return nGramFunction
