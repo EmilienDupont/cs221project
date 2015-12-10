@@ -160,6 +160,12 @@ class LinearRegression:
         plt.show()
         print "Done plotting!"
 
+    def getFeatureVecExample(self, numExample):
+        """
+        Get feature vector of an example
+        """
+        return self.allFeatures[numExample]
+
     def getInfo(self):
         """
         Prints info about model and various errors.
