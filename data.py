@@ -98,7 +98,7 @@ class Data:
         # Fill out labels and feature indices for Train Set
         for index, review in enumerate(self.trainData):
             text = review['text']
-            AllFeatures.append(featureExtractor(text))
+            AllFeatures.append(self.extractFeatures(text, featureExtractor))
             trainLabelList.append(review['stars'])
             # Create a dictionary that links a particular feature to its index
             # in the numpy array
@@ -110,7 +110,7 @@ class Data:
         # Fill out labels and feature indices for Test Set
         for index, review in enumerate(self.testData):
             text = review['text']
-            AllTestFeatures.append(featureExtractor(text))
+            AllTestFeatures.append(self.extractFeatures(text, featureExtractor))
             testLabelList.append(review['stars'])
             # Add features that did not appear in training set
             for feature in AllTestFeatures[index]:
@@ -175,3 +175,12 @@ class Data:
         Returns a feature vector, used to debug.
         """
         return self.AllFeatures[numExample]
+
+    def extractFeatures(self, text, featureExtractor):
+        """
+        Extracts features using the list of feature exctractors for a single example |text|
+        """
+        features = {}
+        for extractor in featureExtractor:
+            features.update(extractor(text))
+        return features
