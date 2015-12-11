@@ -10,6 +10,19 @@ import createWordClusters
 tbl = dict.fromkeys(i for i in xrange(sys.maxunicode)
                       if unicodedata.category(unichr(i)).startswith('P'))
 
+# intermediate things to be used later in clause-level negation
+negation_patterns = "(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasn\'t|hadn\'t|can\'t|couldn\'t|shouldn\'t|" + \
+                    "won\'t|wouldn\'t|don\'t|doesn\'t|didn\'t|isn\'t|aren\'t|ain\'t)$)|n't"
+
+def neg_match(s):
+    return re.match(negation_patterns, s, flags=re.U)
+
+punct_patterns = "[.:;,!?]"
+
+def punct_mark(s):
+    return re.search(punct_patterns, s, flags=re.U)
+
+
 def posNegClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numClusters=100):
     """
     Returns a feature extractor which clusters words and then classifies them into
@@ -27,7 +40,8 @@ def posNegClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
 
     def extractor(text):
         featureVector = {}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in wordToCluster and word in lexicon:
                 cluster = wordToCluster[word]
                 polarity = int(lexicon[word]) # if 1 => positive, if 0 => negative
@@ -40,6 +54,56 @@ def posNegClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numCluste
                     featureVector[featureName] += 1
                 else:
                     featureVector[featureName] = 1
+        return featureVector
+
+    return extractor
+
+def clauseClusterFeatures(embeddingsFile, dictionaryFile, lexiconFile, numClusters=100):
+    """
+    Returns a feature extractor which clusters words and then classifies them into
+    positive and negative clusters. E.g. {Cluster1_NEG: 3, Cluster17_POS: 1} , and also takes
+    into account clause-level negation
+    """
+    # Load the pickle files
+    embeddings = pickle.load( open( embeddingsFile, "rb" ) )
+    dictionary = pickle.load( open( dictionaryFile, "rb" ) )
+    # Create a cluster object and return a dictionary mapping words to clusters
+    cluster = createWordClusters.ClusterWords(embeddings, dictionary, numClusters)
+    wordToCluster = cluster.getWordToCluster()
+
+    # Read in the lexicon
+    lexicon = readLexicon(lexiconFile)
+
+    def extractor(text):
+        featureVector = {}
+        prevNeg = False
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
+            if not prevNeg:
+                prevNeg = (neg_match(word) != None)
+            if word in wordToCluster and word in lexicon:
+                cluster = wordToCluster[word]
+                polarity = int(lexicon[word]) # if 1 => positive, if 0 => negative
+                if not prevNeg:
+                    if polarity:
+                        featureName = "Cluster" + str(cluster) + "_POS"
+                    else:
+                        featureName = "Cluster" + str(cluster) + "_NEG"
+                    if featureName in featureVector:
+                        featureVector[featureName] += 1
+                    else:
+                        featureVector[featureName] = 1
+                else:
+                    if polarity:
+                        featureName = "Cluster" + str(cluster) + "_NEG"
+                    else:
+                        featureName = "Cluster" + str(cluster) + "_POS"
+                    if featureName in featureVector:
+                        featureVector[featureName] += 1
+                    else:
+                        featureVector[featureName] = 1
+            if punct_mark(rawWord):
+                prevNeg = False
         return featureVector
 
     return extractor
@@ -59,7 +123,8 @@ def clusterFeatures(embeddingsFile, dictionaryFile, numClusters=100):
 
     def extractor(text):
         featureVector = {}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in wordToCluster:
                 cluster = wordToCluster[word]
                 if cluster in featureVector:
@@ -159,12 +224,44 @@ def positiveNegativeCounts(inputFile):
     lexicon = readLexicon(inputFile)
     def extractor(text):
         featureVector = {'-POSITIVE-': 0, '-NEGATIVE-': 0}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in lexicon:
                 if lexicon[word]:
                     featureVector['-POSITIVE-'] += 1
                 else:
                     featureVector['-NEGATIVE-'] += 1
+        return featureVector
+
+    return extractor
+
+def positiveNegativeCountsWithClause(inputFile):
+    """
+    Returns funciton that returns a two dimensional feature vector:
+    -Count of positive words (based on lexicon)
+    -Count of negative words (based on lexicon)
+    """
+    lexicon = readLexicon(inputFile)
+    def extractor(text):
+        prevNeg = False
+        featureVector = {'-POSITIVE-': 0, '-NEGATIVE-': 0}
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
+            if not prevNeg:
+                prevNeg = (neg_match(word) != None)
+            if word in lexicon:
+                if (not prevNeg):
+                    if lexicon[word]:
+                        featureVector['-POSITIVE-'] += 1
+                    else:
+                        featureVector['-NEGATIVE-'] += 1
+                else:
+                    if lexicon[word]:
+                        featureVector['-NEGATIVE-'] += 1
+                    else:
+                        featureVector['-POSITIVE-'] += 1
+            if punct_mark(rawWord):
+                prevNeg = False
         return featureVector
 
     return extractor
@@ -184,7 +281,8 @@ def emotionCounts(inputFile):
         featureVector = {'-ANGER-': 0, '-ANTICIPATION-': 0, '-DISGUST-': 0,
                          '-FEAR-': 0, '-JOY-': 0, '-NEGATIVE-': 0, '-POSITIVE-': 0,
                          '-SADNESS-': 0, '-SURPRISE-': 0, '-TRUST-': 0}
-        for word in text.split():
+        for rawWord in text.split():
+            word = removePunctuation(rawWord)
             if word in lexicon:
                 for number in lexicon[word]:
                     featureVector[numberToToken[number]] += 1
@@ -197,7 +295,7 @@ def removePunctuation(text):
     """
     Function that removes the punctuation from a unicode formatted input string
     """
-    return text.translate(tbl)
+    return text.translate(tbl).lower()
 
 def readCommonWords(inputFile):
     """
@@ -293,17 +391,6 @@ def wordFeaturesNoCommonWords(commonWords):
         return wordCount
     return extractor
 
-negation_patterns = "(?:^(?:never|no|nothing|nowhere|noone|none|not|havent|hasn\'t|hadn\'t|can\'t|couldn\'t|shouldn\'t|" + \
-                    "won\'t|wouldn\'t|don\'t|doesn\'t|didn\'t|isn\'t|aren\'t|ain\'t)$)|n't"
-
-def neg_match(s):
-    return re.match(negation_patterns, s, flags=re.U)
-
-punct_patterns = "[.:;,!?]"
-
-def punct_mark(s):
-    return re.search(punct_patterns, s, flags=re.U)
-
 def wordFeaturesWithNegation(commonWords, leafWords):
     """
     Word feature extractor that tries to take into account the effects of negation and clause-level punctuation
@@ -379,18 +466,3 @@ def stemmedWordFeatures(leafWords):
         return wordCount
 
     return stemmedWordCount
-
-def nGramFeatures(n):
-    """
-    Returns a function that returns "n-gram" features from a string
-    """
-    def nGramFunction(text):
-        featureVec = {}
-        string = text.replace(" ","")
-        for i in range(len(string)-(n-1)):
-            if string[i:i+n] in featureVec:
-                featureVec[string[i:i+n]] += 1
-            else:
-                featureVec[string[i:i+n]] = 1
-        return featureVec
-    return nGramFunction

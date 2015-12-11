@@ -160,6 +160,28 @@ class LinearRegression:
         plt.show()
         print "Done plotting!"
 
+    def getConfusionMatrix(self, asFraction = True):
+        """
+        Returns confusion matrix.
+        Row: True Value
+        Column: Prediction
+        Entries: Counts
+        asFraction: if False return counts, otherwise fraction
+        """
+        predictedLabels = []
+        trueLabels = []
+        for review in self.Data.testData:
+            trueLabels.append(review['stars'])
+            predictedLabels.append(round(self.predictRating(review)))
+        confusionMatrix = np.zeros((5,5), np.int)
+        for i, prediction in enumerate(predictedLabels):
+            confusionMatrix[trueLabels[i] - 1, prediction - 1] += 1
+        if asFraction:
+            rowSums = confusionMatrix.sum(axis=1)
+            return confusionMatrix.astype(float)/rowSums[:, np.newaxis]
+        else:
+            return confusionMatrix
+
     def getFeatureVecExample(self, numExample):
         """
         Get feature vector of an example
@@ -178,4 +200,6 @@ class LinearRegression:
         print "Training Misclassification: %s" % self.getTrainingMisClass()
         print "Test RMSE: %s" % self.getTestRMSE()
         print "Test Misclassification: %s" % self.getTestMisClass()
+        print "Confusion Matrix: "
+        print self.getConfusionMatrix()
         print "\n"
