@@ -19,7 +19,7 @@ if len(sys.argv) < 2:
 
 inputFile = sys.argv[1]
 
-reviews = Data(inputFile, numLines = 10000, testLines = 1000)
+reviews = Data(inputFile, numLines = 50000, testLines = 5000)
 reviews.shuffle()
 
 #Load embeddings of words
@@ -28,6 +28,7 @@ dictionary = pickle.load( open( "dictionary.p", "rb" ) )
 
 #Load all data into the proper format
 def loadData(inputData):
+  tofile = True
   print "Loading dataset..."
   finalData = []
   finalGT = []
@@ -47,7 +48,14 @@ def loadData(inputData):
           #print "jdsfhls"
         first = False
     #Resample review to 64 length
+
     if(not first):
+      #print revVec.shape[1]
+#      L = min(revVec.shape[1],64)
+#      newRev = np.zeros((64,64))
+#      newRev[:,-L:-1] = revVec[:,-L:-1]
+     # print new
+
       ny, nx = revVec.shape
       x = np.linspace(0, 1, nx)
       y = np.linspace(0, 1, ny)
@@ -60,6 +68,30 @@ def loadData(inputData):
       y = np.linspace(0, 1, ny)
       xv2, yv2 = np.meshgrid(x, y)
       newRev = scipy.interpolate.griddata((xv,yv),revVec,(xv2,yv2),method='nearest')
+
+
+      if(tofile):
+        pass
+#        np.set_printoptions(precision=2) 
+#        text_file = open("OutputList.txt", "w")
+#        ar1 = (np.around(newRev, decimals=2))
+#        ar2 =  ar1.tolist()
+#        ar3 = myFormattedList = [ ['%.2f' % elem for elem in ro1] for ro1 in ar1]
+#        
+#        print '['
+#        for ro1 in ar2:
+#          for elem in ro1:
+#            print '%.2f,'%elem,
+#        print ']'#
+
+#        print review['stars']
+#        text_file.write(str(ar1.tolist()))
+#        text_file.close() 
+#        np.savetxt('testReview.csv', ar1, delimiter=',')
+#        text_file = open("Output.txt", "w")
+#        text_file.write(review['text'])
+#        text_file.close() 
+#        tofile = False
 
       finalData.append(newRev)
       oneHot = [0,0,0,0,0]
@@ -119,31 +151,71 @@ def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
 
+def testTrain():
+  right = 0 
+  total = 0
+
+  for i in xrange(len(allTrainingData[0])):
+    acc = accuracy.eval(feed_dict={x: allTrainingData[0][i:i+1], y_: allTrainingData[1][i:i+1], keep_prob: 1.0})
+    right += acc
+    total += 1
+    i += 1
+  print "Train Accuracy: ", float(right)/float(total)
+
+
+def testTest():
+  right = 0 
+  total = 0
+  for i in xrange(len(allTestData[0])):
+    acc = accuracy.eval(feed_dict={x: allTestData[0][i:i+1], y_: allTestData[1][i:i+1], keep_prob: 1.0})
+    right += acc
+    total += 1
+    i += 1
+  print "Test Accuracy: ", float(right)/float(total)
+  #print allTestData[0].shape
+
+def outTest():
+  preds = []
+  truth = []
+  for i in xrange(len(allTestData[0])):
+    pred = prediction.eval(feed_dict={x: allTestData[0][i:i+1], y_: allTestData[1][i:i+1], keep_prob: 1.0})
+    for j in xrange(len(pred)):
+      preds.append(pred[j])
+      truth.append(np.argmax(allTestData[1][i+j]))
+    i += 1
+  text_file = open("truth.txt", "w")
+  text_file.write(str(truth))
+  text_file.close()
+  text_file = open("preds.txt", "w")
+  text_file.write(str(preds))
+  text_file.close()
+  #print allTestData[0].shape
+
 #Define out network, a standard double conv-relu-pool with a softmax
-W_conv1 = weight_variable([64, 5, 1, 5])
-b_conv1 = bias_variable([1])
+W_conv1 = weight_variable([8, 10, 1, 16])
+b_conv1 = bias_variable([16])
 
 x_image = tf.reshape(x, [-1,64,64,1])
 
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_2x2(h_conv1)
 
-W_conv2 = weight_variable([32, 5, 5, 5])
-b_conv2 = bias_variable([1])
+W_conv2 = weight_variable([8, 10, 16, 16])
+b_conv2 = bias_variable([16])
 
 h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
-W_fc1 = weight_variable([16 * 16 * 5, 512])
-b_fc1 = bias_variable([512])
+W_fc1 = weight_variable([16 * 16 * 16, 128])
+b_fc1 = bias_variable([128])
 
-h_pool2_flat = tf.reshape(h_pool2, [-1, 16*16*5])
+h_pool2_flat = tf.reshape(h_pool2, [-1, 16*16*16])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 keep_prob = tf.placeholder("float")
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
-W_fc2 = weight_variable([512, 5])
+W_fc2 = weight_variable([128, 5])
 b_fc2 = bias_variable([5])
 
 y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
@@ -151,35 +223,17 @@ y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 cross_entropy = -tf.reduce_sum(y_*tf.log(y_conv))
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
+prediction = tf.argmax(y_conv,1)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 rmse = tf.reduce_mean(tf.pow(tf.argmax(y_conv,1)-tf.argmax(y_,1),2))
 sess.run(tf.initialize_all_variables())
-for i in range(10000):
+for i in range(15000):
   allTrainingData, batch = getBatch(allTrainingData, 50, i)
-  if i%100 == 0:
+  if i%500 == 0:
     train_accuracy = accuracy.eval(feed_dict={
         x:batch[0], y_: batch[1], keep_prob: 1.0})
     print "step %d, training accuracy %g"%(i, train_accuracy)
+    testTest()
   train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
 #
-
-right = 0 
-total = 0
-
-for i in xrange(len(allTrainingData[0])):
-  acc = accuracy.eval(feed_dict={x: allTrainingData[0][i:i+1], y_: allTrainingData[1][i:i+1], keep_prob: 1.0})
-  right += acc
-  total += 1
-  i += 1
-print "Train Accuracy: ", float(right)/float(total)
-
-right = 0 
-total = 0
-
-for i in xrange(len(allTestData[0])):
-  acc = accuracy.eval(feed_dict={x: allTestData[0][i:i+1], y_: allTestData[1][i:i+1], keep_prob: 1.0})
-  right += acc
-  total += 1
-  i += 1
-print "Test Accuracy: ", float(right)/float(total)
-#print allTestData[0].shape
+outTest()
