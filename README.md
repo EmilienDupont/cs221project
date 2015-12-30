@@ -18,5 +18,5 @@ python main.py data/yelp_academic_dataset_review.json
 ```
 Similarly the Neural Network on "Review Images" can be found in Tensorflow/ReviewImageNet.py and can be run as:
 ```
-python ReviewImageNet.py ../data/yelp_academic_dataset_review.json
+python ReviewImageNet.py data/yelp_academic_dataset_review.json
 ```
